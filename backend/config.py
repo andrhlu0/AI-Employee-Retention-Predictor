@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 
 load_dotenv()
 
@@ -42,7 +43,10 @@ class Settings(BaseSettings):
     SMTP_USER: str = os.getenv("SMTP_USER", "")
     SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
     
-    class Config:
-        env_file = ".env"
+    # Configure model to allow extra fields (ignore unknown environment variables)
+    model_config = ConfigDict(
+        env_file=".env",
+        extra="ignore"  # This tells Pydantic to ignore extra fields
+    )
 
 settings = Settings()

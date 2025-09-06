@@ -1,0 +1,32 @@
+# Data files
+*.csv
+*.xlsx
+*.json
+data/
+datasets/
+
+# Models
+*.pkl
+*.h5
+*.pt
+*.pth
+*.joblib
+saved_models/
+
+# Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Python
+__pycache__/
+*.pyc
+
+# Experiments
+mlruns/
+outputs/
+results/
+experiments/
+
+# Logs
+logs/
+*.log

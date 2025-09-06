@@ -14,7 +14,7 @@ class User(Base):
     
     # Company association
     company_id = Column(String, ForeignKey("companies.company_id"))
-    company = relationship("Company")
+    company = relationship("Company", back_populates="users")
     
     # Permissions
     can_view_all_employees = Column(Boolean, default=False)
@@ -25,8 +25,9 @@ class User(Base):
     # Status
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
+    onboarding_completed = Column(Boolean, default=False)
     
     # Timestamps
-    last_login = Column(DateTime)
+    last_login = Column(DateTime, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())

@@ -41,6 +41,15 @@ class AuthHandler:
 
 auth_handler = AuthHandler()
 
+def get_db():
+    """Get database session"""
+    from app import SessionLocal
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -60,6 +69,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     if user is None:
         raise credentials_exception
     
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is deactivated"
+        )
+    
     return user
 
 async def get_current_company(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -67,3 +82,11 @@ async def get_current_company(user: User = Depends(get_current_user), db: Sessio
     if not company:
         raise HTTPException(404, "Company not found")
     return company
+
+async def get_current_admin(user: User = Depends(get_current_user)):
+    if user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
+        )
+    return user

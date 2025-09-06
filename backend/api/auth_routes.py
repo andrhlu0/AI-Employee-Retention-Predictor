@@ -10,9 +10,18 @@ import string
 from models.user import User
 from models.company import Company
 from models.employee import Employee
-from auth.auth_handler import auth_handler
+from auth.auth_handler import auth_handler, get_current_user, get_current_company
 
 auth_router = APIRouter()
+
+# Get database dependency
+def get_db():
+    from app import SessionLocal
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 class SignupRequest(BaseModel):
     company_name: str
@@ -103,18 +112,26 @@ async def signup(request: SignupRequest, db: Session = Depends(get_db)):
 async def login(request: LoginRequest, db: Session = Depends(get_db)):
     """Login existing user"""
     
-    user = db.query(User).filter(User.email == request.email).first()
+    # Clean email
+    email = request.email.lower().strip()
+    
+    user = db.query(User).filter(User.email == email).first()
     if not user or not auth_handler.verify_password(request.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password"
+            detail="Invalid email or password"
         )
     
     if not user.is_active:
-        raise HTTPException(400, "Account is deactivated")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is deactivated"
+        )
     
     # Get company info
     company = db.query(Company).filter(Company.company_id == user.company_id).first()
+    if not company:
+        raise HTTPException(404, "Company not found")
     
     # Update last login
     user.last_login = datetime.utcnow()
@@ -131,13 +148,33 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
         "user": {
             "email": user.email,
             "full_name": user.full_name,
-            "role": user.role
+            "role": user.role,
+            "onboarding_completed": getattr(user, 'onboarding_completed', True)
         },
         "company": {
             "id": company.company_id,
             "name": company.name,
             "plan": company.subscription_plan,
             "status": company.subscription_status
+        }
+    }
+
+@auth_router.get("/me")
+async def get_current_user_info(
+    user: User = Depends(get_current_user),
+    company: Company = Depends(get_current_company)
+):
+    """Get current user information"""
+    return {
+        "user": {
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role
+        },
+        "company": {
+            "id": company.company_id,
+            "name": company.name,
+            "plan": company.subscription_plan
         }
     }
 
@@ -195,3 +232,22 @@ async def invite_user(
     # send_invitation_email(email, company.name, invite_token)
     
     return {"message": f"Invitation sent to {email}"}
+
+@auth_router.post("/forgot-password")
+async def forgot_password(email: EmailStr, db: Session = Depends(get_db)):
+    """Request password reset"""
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        # Don't reveal if email exists
+        return {"message": "If the email exists, reset instructions have been sent"}
+    
+    # Generate reset token
+    reset_token = secrets.token_urlsafe(32)
+    
+    # Store reset token (in production, store in Redis with expiration)
+    # For now, we'll just return success
+    
+    # Send reset email (implement email service)
+    # send_reset_email(email, reset_token)
+    
+    return {"message": "If the email exists, reset instructions have been sent"}
