@@ -20,6 +20,7 @@ const Layout = ({ children }) => {
     { path: '/upload', icon: Upload, label: 'Upload Data' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
     { path: '/settings', icon: Settings, label: 'Settings' },
+    
   ];
 
   const handleSignOut = (e) => {

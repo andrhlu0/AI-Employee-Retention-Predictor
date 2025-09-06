@@ -15,6 +15,7 @@ import Onboarding from './pages/Onboarding';
 import Settings from './pages/Settings';
 import Layout from './components/Layout';
 import UploadData from './components/UploadData';
+import Analytics from './components/Analytics';
 
 // Fixed Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -89,6 +90,11 @@ function App() {
         <Route path="/interventions" element={
           <ProtectedRoute>
             <InterventionSuggestions />
+          </ProtectedRoute>
+        } />
+        <Route path="/analytics" element={
+          <ProtectedRoute>
+            <Analytics />
           </ProtectedRoute>
         } />
         <Route path="/onboarding" element={
