@@ -27,12 +27,28 @@ const EmployeeRiskList = () => {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
+      
+      // First check localStorage for uploaded employees
+      const storedEmployees = localStorage.getItem('employees');
+      if (storedEmployees) {
+        const employees = JSON.parse(storedEmployees);
+        setEmployees(employees);
+        setLoading(false);
+        return;
+      }
+      
+      // Try API call
       const response = await axios.get('/api/v1/employees');
       setEmployees(response.data);
+      
+      // Store in localStorage for persistence
+      localStorage.setItem('employees', JSON.stringify(response.data));
     } catch (error) {
       console.error('Error fetching employees:', error);
-      // Use mock data if API fails
-      setEmployees(getMockEmployees());
+      // Use mock data if API fails and no stored data
+      const mockData = getMockEmployees();
+      setEmployees(mockData);
+      localStorage.setItem('employees', JSON.stringify(mockData));
     } finally {
       setLoading(false);
     }

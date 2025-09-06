@@ -14,6 +14,7 @@ import InterventionSuggestions from './components/InterventionSuggestions';
 import Onboarding from './pages/Onboarding';
 import Settings from './pages/Settings';
 import Layout from './components/Layout';
+import UploadData from './components/UploadData';
 
 // Fixed Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -78,6 +79,11 @@ function App() {
         <Route path="/employees/:id" element={
           <ProtectedRoute>
             <RiskAnalysis />
+          </ProtectedRoute>
+        } />
+        <Route path="/upload" element={
+          <ProtectedRoute>
+            <UploadData />
           </ProtectedRoute>
         } />
         <Route path="/interventions" element={
