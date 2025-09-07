@@ -1,3 +1,4 @@
+// frontend/src/pages/Settings.jsx
 import React, { useState } from 'react';
 import { 
   Bell, Shield, Users, Database, Link, 
@@ -5,6 +6,7 @@ import {
   Calendar, Activity, CreditCard,
   ChevronRight
 } from 'lucide-react';
+import IntegrationsSettings from '../components/IntegrationsSettings';
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('general');
@@ -75,7 +77,7 @@ const Settings = () => {
                     <input
                       type="text"
                       defaultValue={company.name || 'Your Company'}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                   </div>
                   
@@ -83,10 +85,26 @@ const Settings = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Timezone
                     </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500">
                       <option>UTC</option>
                       <option>America/New_York</option>
                       <option>America/Los_Angeles</option>
+                      <option>Europe/London</option>
+                      <option>Europe/Paris</option>
+                      <option>Asia/Tokyo</option>
+                      <option>Asia/Shanghai</option>
+                      <option>Australia/Sydney</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Default Risk Threshold
+                    </label>
+                    <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500">
+                      <option>70% - Conservative</option>
+                      <option>75% - Balanced</option>
+                      <option>80% - Aggressive</option>
                     </select>
                   </div>
                   
@@ -101,27 +119,67 @@ const Settings = () => {
               
               {activeTab === 'notifications' && (
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email Notifications
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-medium text-gray-900">Email Notifications</h3>
+                    
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        className="mr-3 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">High Risk Alerts</span>
+                        <p className="text-xs text-gray-500">Get notified when employees reach high risk threshold</p>
+                      </div>
                     </label>
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      className="mr-2"
-                    />
-                    <span>Enable email alerts for high-risk employees</span>
+                    
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        defaultChecked
+                        className="mr-3 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">Weekly Summary</span>
+                        <p className="text-xs text-gray-500">Receive weekly retention analytics report</p>
+                      </div>
+                    </label>
+                    
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        className="mr-3 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">Intervention Reminders</span>
+                        <p className="text-xs text-gray-500">Get reminded about pending interventions</p>
+                      </div>
+                    </label>
+                  </div>
+                  
+                  <div className="pt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Alert Threshold
+                    </label>
+                    <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500">
+                      <option>70% Risk Score</option>
+                      <option>75% Risk Score</option>
+                      <option>80% Risk Score</option>
+                      <option>85% Risk Score</option>
+                    </select>
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Alert Threshold
+                      Notification Email
                     </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-md">
-                      <option>70% Risk Score</option>
-                      <option>75% Risk Score</option>
-                      <option>80% Risk Score</option>
-                    </select>
+                    <input
+                      type="email"
+                      defaultValue={user.email || ''}
+                      placeholder="notifications@company.com"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
                   </div>
                   
                   <button
@@ -133,9 +191,130 @@ const Settings = () => {
                 </div>
               )}
               
-              {activeTab !== 'general' && activeTab !== 'notifications' && (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">This section is coming soon!</p>
+              {/* INTEGRATIONS TAB - This is where the IntegrationsSettings component is rendered */}
+              {activeTab === 'integrations' && <IntegrationsSettings />}
+              
+              {activeTab === 'security' && (
+                <div className="space-y-4">
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <h3 className="text-lg font-medium text-gray-900 mb-3">Security Settings</h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Two-Factor Authentication
+                        </label>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">Add an extra layer of security to your account</span>
+                          <button className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700">
+                            Enable 2FA
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="pt-4 border-t">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Session Timeout
+                        </label>
+                        <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500">
+                          <option>30 minutes</option>
+                          <option>1 hour</option>
+                          <option>2 hours</option>
+                          <option>4 hours</option>
+                          <option>8 hours</option>
+                        </select>
+                      </div>
+                      
+                      <div className="pt-4 border-t">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          API Access
+                        </label>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between p-3 bg-white border rounded-md">
+                            <div>
+                              <p className="text-sm font-medium">API Key</p>
+                              <p className="text-xs text-gray-500">Last used: Never</p>
+                            </div>
+                            <button className="px-3 py-1 text-sm text-primary-600 border border-primary-600 rounded-md hover:bg-primary-50">
+                              Generate Key
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={handleSave}
+                    className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                  >
+                    Save Security Settings
+                  </button>
+                </div>
+              )}
+              
+              {activeTab === 'billing' && (
+                <div className="space-y-4">
+                  <div className="bg-gradient-to-r from-primary-50 to-blue-50 border border-primary-200 rounded-lg p-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Current Plan</h3>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-2xl font-bold text-primary-600">Professional</p>
+                        <p className="text-sm text-gray-600 mt-1">$99/month • Up to 500 employees</p>
+                      </div>
+                      <button className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">
+                        Upgrade Plan
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-white border rounded-lg p-4">
+                      <p className="text-sm text-gray-600">Employees Tracked</p>
+                      <p className="text-2xl font-bold text-gray-900">156 / 500</p>
+                    </div>
+                    <div className="bg-white border rounded-lg p-4">
+                      <p className="text-sm text-gray-600">Predictions This Month</p>
+                      <p className="text-2xl font-bold text-gray-900">1,248</p>
+                    </div>
+                    <div className="bg-white border rounded-lg p-4">
+                      <p className="text-sm text-gray-600">Next Billing Date</p>
+                      <p className="text-2xl font-bold text-gray-900">Oct 1</p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white border rounded-lg p-4">
+                    <h4 className="font-medium text-gray-900 mb-3">Payment Method</h4>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="w-12 h-8 bg-gray-200 rounded flex items-center justify-center text-xs font-bold">
+                          VISA
+                        </div>
+                        <span className="ml-3 text-sm text-gray-600">•••• 4242</span>
+                      </div>
+                      <button className="text-sm text-primary-600 hover:text-primary-700">
+                        Update
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white border rounded-lg p-4">
+                    <h4 className="font-medium text-gray-900 mb-3">Billing History</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <span className="text-sm text-gray-600">September 1, 2024</span>
+                        <span className="text-sm font-medium">$99.00</span>
+                      </div>
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <span className="text-sm text-gray-600">August 1, 2024</span>
+                        <span className="text-sm font-medium">$99.00</span>
+                      </div>
+                      <div className="flex items-center justify-between py-2">
+                        <span className="text-sm text-gray-600">July 1, 2024</span>
+                        <span className="text-sm font-medium">$99.00</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

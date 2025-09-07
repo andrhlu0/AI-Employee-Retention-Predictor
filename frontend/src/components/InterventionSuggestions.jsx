@@ -9,87 +9,73 @@ const InterventionSuggestions = () => {
 
   useEffect(() => {
     fetchInterventions();
+    
+    // Listen for data updates
+    const handleDataUpdate = () => {
+      fetchInterventions();
+    };
+    
+    window.addEventListener('dataUpdated', handleDataUpdate);
+    
+    return () => {
+      window.removeEventListener('dataUpdated', handleDataUpdate);
+    };
   }, []);
 
-  const fetchInterventions = async () => {
+    const fetchInterventions = async () => {
     try {
-      // For demo, using mock data
-      const mockInterventions = [
-        {
-          id: 1,
-          employee: 'John Smith',
-          department: 'Engineering',
-          risk_score: 0.82,
-          intervention: {
-            type: 'engagement',
-            priority: 'high',
-            action: 'Schedule 1-on-1 to discuss concerns and engagement',
-            timeline: 'Within 1 week',
-            status: 'pending'
-          },
-          created_date: new Date().toISOString()
-        },
-        {
-          id: 2,
-          employee: 'Sarah Johnson',
-          department: 'Marketing',
-          risk_score: 0.76,
-          intervention: {
-            type: 'workload',
-            priority: 'high',
-            action: 'Review workload and consider redistribution or time off',
-            timeline: 'Immediate',
-            status: 'in_progress'
-          },
-          created_date: new Date(Date.now() - 86400000).toISOString()
-        },
-        {
-          id: 3,
-          employee: 'Mike Wilson',
-          department: 'Sales',
-          risk_score: 0.65,
-          intervention: {
-            type: 'performance',
-            priority: 'medium',
-            action: 'Conduct performance review and provide support/training',
-            timeline: 'Within 2 weeks',
-            status: 'completed'
-          },
-          created_date: new Date(Date.now() - 172800000).toISOString()
-        }
-      ];
-      setInterventions(mockInterventions);
-      setLoading(false);
+      setLoading(true);
+      
+      // First check localStorage for interventions
+      const storedInterventions = localStorage.getItem('interventions');
+      if (storedInterventions) {
+        const interventions = JSON.parse(storedInterventions);
+        setInterventions(interventions);
+        setLoading(false);
+        return;
+      }
+      
+      // Try API call
+      try {
+        const response = await api.getInterventions();
+        setInterventions(response.data);
+        localStorage.setItem('interventions', JSON.stringify(response.data));
+      } catch (apiError) {
+        // Use default mock data if no stored data and API fails
+        const mockInterventions = generateMockInterventions();
+        setInterventions(mockInterventions);
+      }
     } catch (error) {
       console.error('Error fetching interventions:', error);
+    } finally {
       setLoading(false);
     }
   };
 
-  const updateInterventionStatus = async (id, newStatus) => {
-    // Update status locally for demo
-    setInterventions(prev => prev.map(item => 
-      item.id === id ? { ...item, intervention: { ...item.intervention, status: newStatus } } : item
-    ));
-  };
+    const updateInterventionStatus = async (id, newStatus) => {
+      // Update status locally for demo
+      setInterventions(prev => prev.map(item => 
+        item.id === id ? { ...item, intervention: { ...item.intervention, status: newStatus } } : item
+      ));
+    };
 
-  const filteredInterventions = interventions.filter(item => {
-    if (filter === 'all') return true;
-    return item.intervention.status === filter;
-  });
+    const filteredInterventions = interventions.filter(item => {
+      if (filter === 'all') return true;
+      return item.intervention.status === filter;
+    });
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'completed':
-        return 'text-green-600 bg-green-100';
-      case 'in_progress':
-        return 'text-blue-600 bg-blue-100';
-      case 'pending':
-        return 'text-yellow-600 bg-yellow-100';
-      default:
-        return 'text-gray-600 bg-gray-100';
-    }
-  };
+    const getStatusColor = (status) => {
+      switch (status) {
+        case 'completed':
+          return 'text-green-600 bg-green-100';
+        case 'in_progress':
+          return 'text-blue-600 bg-blue-100';
+        case 'pending':
+          return 'text-yellow-600 bg-yellow-100';
+        default:
+          return 'text-gray-600 bg-gray-100';
+      }
+    };
 
   const getPriorityColor = (priority) => {
     switch (priority) {
