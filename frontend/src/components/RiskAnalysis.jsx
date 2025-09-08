@@ -1,11 +1,11 @@
-// Fixed RiskAnalysis.jsx - COMPLETE CODE
+// Fixed RiskAnalysis.jsx - COMPLETE FILE
 // Save this as: frontend/src/components/RiskAnalysis.jsx
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   AlertTriangle, TrendingUp, RefreshCw, ArrowLeft,
-  Activity, Users, Brain, Calendar
+  Activity, Users, Brain, Calendar, ExternalLink
 } from 'lucide-react';
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, 
@@ -22,7 +22,7 @@ const RiskAnalysis = () => {
 
   useEffect(() => {
     fetchEmployeeDetails();
-  }, [id]);
+  }, [id]); // Re-fetch when ID changes
 
   const fetchEmployeeDetails = async () => {
     try {
@@ -31,55 +31,86 @@ const RiskAnalysis = () => {
       setEmployeeDetails(response.data);
     } catch (error) {
       console.error('Error fetching employee details:', error);
-      // Use mock data if API fails
-      setEmployeeDetails(getMockEmployeeDetails());
+      // Use mock data specific to this employee ID
+      setEmployeeDetails(getMockEmployeeDetails(id));
     } finally {
       setLoading(false);
     }
   };
 
-  const getMockEmployeeDetails = () => {
-    // Generate mock historical data
+  const getMockEmployeeDetails = (employeeId) => {
+    // Get stored employees from localStorage
+    const storedEmployees = localStorage.getItem('employees');
+    let employeeData = null;
+    
+    if (storedEmployees) {
+      const employees = JSON.parse(storedEmployees);
+      employeeData = employees.find(emp => 
+        emp.employee_id === employeeId || emp.id === employeeId || emp.id === parseInt(employeeId)
+      );
+    }
+
+    // If no employee found in storage, create a default one
+    if (!employeeData) {
+      employeeData = {
+        id: employeeId,
+        employee_id: employeeId,
+        name: `Employee ${employeeId}`,
+        email: `employee${employeeId}@company.com`,
+        position: 'Senior Developer',
+        department: 'Engineering',
+        risk_score: 0.65 + (Math.random() * 0.3)
+      };
+    }
+
+    // Generate historical data specific to this employee
     const history = [];
     const today = new Date();
+    const baseRisk = employeeData.risk_score || 0.65;
+    
     for (let i = 9; i >= 0; i--) {
       const date = new Date(today);
-      date.setDate(date.getDate() - (i * 7)); // Weekly data points
+      date.setDate(date.getDate() - (i * 7));
       history.push({
         date: date.toISOString(),
-        risk_score: 0.65 + (Math.random() * 0.3) - 0.15, // Fluctuating around 0.65
+        risk_score: Math.max(0, Math.min(1, baseRisk + (Math.random() * 0.2) - 0.1)),
         confidence: 0.85 + (Math.random() * 0.1)
       });
     }
 
+    // Generate risk factors based on the employee's risk score
+    const riskLevel = employeeData.risk_score >= 0.75 ? 'high' : 
+                     employeeData.risk_score >= 0.5 ? 'medium' : 'low';
+
     return {
       employee: {
-        id: id,
-        employee_id: id,
-        name: 'John Smith',
-        email: 'john.smith@company.com',
-        position: 'Senior Developer',
-        department: 'Engineering',
-        tenure_years: 3.5,
-        last_promotion: '2022-06-15',
-        manager: 'Sarah Johnson'
+        id: employeeData.id || employeeId,
+        employee_id: employeeData.employee_id || employeeId,
+        name: employeeData.name,
+        email: employeeData.email,
+        position: employeeData.position || 'Employee',
+        department: employeeData.department || 'General',
+        tenure_years: employeeData.tenure_years || Math.floor(Math.random() * 10) + 1,
+        last_promotion: employeeData.last_promotion || '2022-06-15',
+        manager: employeeData.manager || 'John Manager'
       },
       current_risk: {
-        score: 0.85,
+        score: employeeData.risk_score,
         factors: {
-          burnout_risk: 'high',
-          negative_sentiment: 'medium',
-          low_engagement: 'high',
-          declining_performance: 'medium',
-          social_isolation: 'low',
-          low_meeting_engagement: 'high'
+          burnout_risk: riskLevel,
+          negative_sentiment: riskLevel === 'high' ? 'medium' : 'low',
+          low_engagement: riskLevel,
+          declining_performance: riskLevel === 'high' ? 'medium' : 'low',
+          social_isolation: riskLevel === 'high' ? 'medium' : 'low',
+          low_meeting_engagement: riskLevel
         },
         last_updated: new Date().toISOString()
       },
       latest_prediction: {
-        risk_score: 0.85,
-        confidence: 0.92,
-        departure_window: '1-3 months',
+        risk_score: employeeData.risk_score,
+        confidence: 0.88 + (Math.random() * 0.1),
+        departure_window: riskLevel === 'high' ? '1-3 months' : 
+                         riskLevel === 'medium' ? '3-6 months' : '6+ months',
         date: new Date().toISOString(),
         top_factors: [
           { factor: 'Burnout Risk', impact: 0.35 },
@@ -88,30 +119,53 @@ const RiskAnalysis = () => {
         ]
       },
       history: history,
-      interventions: [
-        {
-          action: 'One-on-One Check-in',
-          description: 'Schedule immediate meeting to discuss workload and wellbeing',
-          priority: 'critical',
-          timeline: 'within 2 days',
-          owner: 'Direct Manager'
-        },
-        {
-          action: 'Workload Review',
-          description: 'Analyze and redistribute current project assignments',
-          priority: 'high',
-          timeline: 'within 1 week',
-          owner: 'Team Lead'
-        },
-        {
-          action: 'Career Development Discussion',
-          description: 'Explore growth opportunities and career path',
-          priority: 'medium',
-          timeline: 'within 2 weeks',
-          owner: 'HR Partner'
-        }
-      ]
+      interventions: generateInterventionsForEmployee(employeeData)
     };
+  };
+
+  const generateInterventionsForEmployee = (employee) => {
+    const interventions = [];
+    const riskLevel = employee.risk_score >= 0.75 ? 'critical' : 
+                     employee.risk_score >= 0.5 ? 'high' : 'medium';
+
+    if (riskLevel === 'critical') {
+      interventions.push({
+        action: 'Immediate One-on-One',
+        description: `Schedule urgent meeting with ${employee.name} to discuss concerns`,
+        priority: 'critical',
+        timeline: 'within 24 hours',
+        owner: 'Direct Manager',
+        status: 'pending'
+      });
+      interventions.push({
+        action: 'Retention Review',
+        description: 'Review compensation and career progression opportunities',
+        priority: 'high',
+        timeline: 'within 3 days',
+        owner: 'HR Partner',
+        status: 'pending'
+      });
+    } else if (riskLevel === 'high') {
+      interventions.push({
+        action: 'Check-in Meeting',
+        description: 'Schedule regular check-in to discuss workload and satisfaction',
+        priority: 'high',
+        timeline: 'within 1 week',
+        owner: 'Direct Manager',
+        status: 'pending'
+      });
+    }
+
+    interventions.push({
+      action: 'Career Development Plan',
+      description: 'Create and review career growth opportunities',
+      priority: 'medium',
+      timeline: 'within 2 weeks',
+      owner: 'Manager + HR',
+      status: 'pending'
+    });
+
+    return interventions;
   };
 
   const runNewPrediction = async () => {
@@ -127,7 +181,7 @@ const RiskAnalysis = () => {
           ...prev,
           current_risk: {
             ...prev.current_risk,
-            score: 0.85 + (Math.random() * 0.1) - 0.05,
+            score: Math.min(1, prev.current_risk.score + (Math.random() * 0.1) - 0.05),
             last_updated: new Date().toISOString()
           }
         }));
@@ -135,6 +189,11 @@ const RiskAnalysis = () => {
     } finally {
       setTimeout(() => setRunningPrediction(false), 1500);
     }
+  };
+
+  const viewAllInterventions = () => {
+    // Navigate to interventions page with employee filter
+    navigate(`/interventions?employee=${employeeDetails?.employee?.name}`);
   };
 
   if (loading) {
@@ -169,7 +228,7 @@ const RiskAnalysis = () => {
     { subject: 'Engagement', value: riskFactors.low_engagement === 'high' ? 80 : riskFactors.low_engagement === 'medium' ? 40 : 10 },
     { subject: 'Performance', value: riskFactors.declining_performance === 'high' ? 75 : riskFactors.declining_performance === 'medium' ? 35 : 15 },
     { subject: 'Isolation', value: riskFactors.social_isolation === 'high' ? 70 : riskFactors.social_isolation === 'medium' ? 30 : 10 },
-    { subject: 'Meeting Participation', value: riskFactors.low_meeting_engagement === 'high' ? 65 : riskFactors.low_meeting_engagement === 'medium' ? 35 : 20 }
+    { subject: 'Meeting', value: riskFactors.low_meeting_engagement === 'high' ? 65 : riskFactors.low_meeting_engagement === 'medium' ? 35 : 20 }
   ];
 
   // Prepare trend data
@@ -210,7 +269,9 @@ const RiskAnalysis = () => {
         <div className="flex justify-between items-start">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">{employee.name}</h2>
-            <p className="text-gray-600 mt-1">{employee.position} • {employee.department}</p>
+            <p className="text-gray-600 mt-1">
+              {employee.position} • {employee.department} • ID: {employee.employee_id}
+            </p>
             <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
               <div>
                 <span className="text-gray-500">Email:</span>
@@ -226,49 +287,45 @@ const RiskAnalysis = () => {
               </div>
               <div>
                 <span className="text-gray-500">Last Promotion:</span>
-                <span className="ml-2 text-gray-900">{new Date(employee.last_promotion).toLocaleDateString()}</span>
+                <span className="ml-2 text-gray-900">
+                  {new Date(employee.last_promotion).toLocaleDateString()}
+                </span>
               </div>
             </div>
           </div>
           <div className="text-right">
-            <div className={`inline-flex items-center px-3 py-1 rounded-full ${currentRiskLevel.color}`}>
-              <AlertTriangle className="w-4 h-4 mr-1" />
-              <span className="font-medium">{currentRiskLevel.text}</span>
-            </div>
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${currentRiskLevel.color}`}>
+              {currentRiskLevel.text}
+            </span>
             <p className="text-2xl font-bold text-gray-900 mt-2">
-              {((current_risk?.score || 0) * 100).toFixed(1)}%
+              {(current_risk?.score * 100).toFixed(1)}%
             </p>
             <p className="text-sm text-gray-500">Risk Score</p>
-            <p className="text-xs text-gray-400 mt-1">
-              Updated: {new Date(current_risk?.last_updated).toLocaleString()}
-            </p>
           </div>
-        </div>
-
-        <div className="mt-6 flex gap-4">
-          <button
-            onClick={runNewPrediction}
-            disabled={runningPrediction}
-            className="btn-primary flex items-center"
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${runningPrediction ? 'animate-spin' : ''}`} />
-            {runningPrediction ? 'Running Analysis...' : 'Run New Analysis'}
-          </button>
         </div>
       </div>
 
-      {/* Risk Factors Grid */}
+      {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Radar Chart */}
+        {/* Risk Factors Analysis */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Risk Factor Analysis</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Risk Factor Analysis</h3>
+            <button
+              onClick={runNewPrediction}
+              disabled={runningPrediction}
+              className="flex items-center px-3 py-1 text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-gray-400"
+            >
+              <RefreshCw className={`w-4 h-4 mr-1 ${runningPrediction ? 'animate-spin' : ''}`} />
+              {runningPrediction ? 'Running...' : 'Update'}
+            </button>
+          </div>
           <ResponsiveContainer width="100%" height={300}>
             <RadarChart data={radarData}>
               <PolarGrid />
               <PolarAngleAxis dataKey="subject" />
               <PolarRadiusAxis angle={90} domain={[0, 100]} />
-              <Radar name="Risk Level" dataKey="value" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.6} />
-              <Tooltip />
+              <Radar name="Risk Level" dataKey="value" stroke="#7B61FF" fill="#7B61FF" fillOpacity={0.6} />
             </RadarChart>
           </ResponsiveContainer>
         </div>
@@ -282,55 +339,44 @@ const RiskAnalysis = () => {
               <XAxis dataKey="date" />
               <YAxis domain={[0, 100]} />
               <Tooltip />
-              <Line type="monotone" dataKey="risk" stroke="#8b5cf6" strokeWidth={2} dot={{ fill: '#8b5cf6' }} />
+              <Line type="monotone" dataKey="risk" stroke="#7B61FF" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Latest Prediction Details */}
+      {/* ML Prediction Details */}
       {latest_prediction && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Latest Prediction Details</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <p className="text-sm text-gray-600">Confidence Level</p>
-              <p className="text-xl font-semibold text-gray-900">
-                {(latest_prediction.confidence * 100).toFixed(1)}%
+          <div className="flex items-center mb-4">
+            <Brain className="w-5 h-5 text-primary-600 mr-2" />
+            <h3 className="text-lg font-semibold text-gray-900">Latest ML Prediction</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-sm text-gray-600">Predicted Departure</p>
+              <p className="text-xl font-bold text-gray-900">{latest_prediction.departure_window}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Confidence: {(latest_prediction.confidence * 100).toFixed(0)}%
               </p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Predicted Departure Window</p>
-              <p className="text-xl font-semibold text-red-600">
-                {latest_prediction.departure_window}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Analysis Date</p>
-              <p className="text-xl font-semibold text-gray-900">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-sm text-gray-600">Last Updated</p>
+              <p className="text-lg font-semibold text-gray-900">
                 {new Date(latest_prediction.date).toLocaleDateString()}
               </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {new Date(latest_prediction.date).toLocaleTimeString()}
+              </p>
             </div>
-          </div>
-
-          {/* Top Risk Factors */}
-          <div className="mt-6">
-            <h4 className="text-md font-semibold text-gray-900 mb-3">Top Risk Factors</h4>
-            <div className="space-y-2">
-              {latest_prediction.top_factors?.map((factor, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">{factor.factor}</span>
-                  <div className="flex items-center">
-                    <div className="w-32 bg-gray-200 rounded-full h-2 mr-2">
-                      <div
-                        className="bg-purple-600 h-2 rounded-full"
-                        style={{ width: `${factor.impact * 100}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-sm font-medium text-gray-900">
-                      {(factor.impact * 100).toFixed(0)}%
-                    </span>
-                  </div>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-sm text-gray-600 mb-2">Top Risk Factors</p>
+              {latest_prediction.top_factors.map((factor, idx) => (
+                <div key={idx} className="flex justify-between text-xs">
+                  <span className="text-gray-700">{factor.factor}</span>
+                  <span className="font-semibold text-gray-900">
+                    {(factor.impact * 100).toFixed(0)}%
+                  </span>
                 </div>
               ))}
             </div>
@@ -340,7 +386,16 @@ const RiskAnalysis = () => {
 
       {/* Recommended Interventions */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recommended Interventions</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Recommended Interventions</h3>
+          <button
+            onClick={viewAllInterventions}
+            className="flex items-center text-primary-600 hover:text-primary-700 text-sm font-medium"
+          >
+            View All Active Interventions
+            <ExternalLink className="w-4 h-4 ml-1" />
+          </button>
+        </div>
         <div className="space-y-4">
           {interventions?.map((intervention, index) => (
             <div key={index} className="border rounded-lg p-4">
@@ -360,12 +415,20 @@ const RiskAnalysis = () => {
                       <Users className="w-4 h-4 inline mr-1" />
                       {intervention.owner}
                     </span>
+                    {intervention.status && (
+                      <span className="text-sm text-gray-500">
+                        Status: <span className="font-medium">{intervention.status}</span>
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
           ))}
         </div>
+        {interventions?.length === 0 && (
+          <p className="text-gray-500 text-center py-4">No interventions recommended at this time.</p>
+        )}
       </div>
     </div>
   );

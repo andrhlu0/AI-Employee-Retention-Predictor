@@ -1,9 +1,9 @@
-// Fixed EmployeeRiskList.jsx with proper navigation
+// Fixed EmployeeRiskList.jsx - COMPLETE FILE
 // Save this as: frontend/src/components/EmployeeRiskList.jsx
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, AlertTriangle, TrendingUp, TrendingDown, Minus, Users } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, AlertTriangle, Search, Filter, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 
 const EmployeeRiskList = () => {
@@ -11,24 +11,36 @@ const EmployeeRiskList = () => {
   const [employees, setEmployees] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [riskFilter, setRiskFilter] = useState('all');
   const [sortBy, setSortBy] = useState('risk_desc');
 
   useEffect(() => {
     fetchEmployees();
+    
+    // Listen for data updates from upload
+    const handleDataUpdate = () => {
+      fetchEmployees();
+    };
+    
+    window.addEventListener('dataUpdated', handleDataUpdate);
+    
+    return () => {
+      window.removeEventListener('dataUpdated', handleDataUpdate);
+    };
   }, []);
 
   useEffect(() => {
-    filterAndSortEmployees();
-  }, [employees, searchTerm, departmentFilter, riskFilter, sortBy]);
+    applyFilters();
+  }, [employees, searchQuery, departmentFilter, riskFilter, sortBy]);
 
   const fetchEmployees = async () => {
     try {
       setLoading(true);
       
-      // First check localStorage for uploaded employees
+      // First check localStorage for employees
       const storedEmployees = localStorage.getItem('employees');
       if (storedEmployees) {
         const employees = JSON.parse(storedEmployees);
@@ -38,40 +50,66 @@ const EmployeeRiskList = () => {
       }
       
       // Try API call
-      const response = await axios.get('/api/v1/employees');
-      setEmployees(response.data);
-      
-      // Store in localStorage for persistence
-      localStorage.setItem('employees', JSON.stringify(response.data));
+      try {
+        const response = await axios.get('/api/v1/employees');
+        setEmployees(response.data);
+        localStorage.setItem('employees', JSON.stringify(response.data));
+      } catch (apiError) {
+        // Use mock data if no stored data and API fails
+        const mockEmployees = generateMockEmployees();
+        setEmployees(mockEmployees);
+        localStorage.setItem('employees', JSON.stringify(mockEmployees));
+      }
     } catch (error) {
       console.error('Error fetching employees:', error);
-      // Use mock data if API fails and no stored data
-      const mockData = getMockEmployees();
-      setEmployees(mockData);
-      localStorage.setItem('employees', JSON.stringify(mockData));
+      // Fallback to mock data
+      const mockEmployees = generateMockEmployees();
+      setEmployees(mockEmployees);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const getMockEmployees = () => [
-    { id: 1, employee_id: 'EMP001', name: 'John Smith', email: 'john.smith@company.com', position: 'Senior Developer', department: 'Engineering', risk_score: 0.85, last_prediction: new Date().toISOString() },
-    { id: 2, employee_id: 'EMP002', name: 'Sarah Johnson', email: 'sarah.j@company.com', position: 'Product Manager', department: 'Product', risk_score: 0.72, last_prediction: new Date().toISOString() },
-    { id: 3, employee_id: 'EMP003', name: 'Mike Chen', email: 'mike.chen@company.com', position: 'Data Analyst', department: 'Analytics', risk_score: 0.45, last_prediction: new Date().toISOString() },
-    { id: 4, employee_id: 'EMP004', name: 'Emily Davis', email: 'emily.d@company.com', position: 'HR Manager', department: 'HR', risk_score: 0.28, last_prediction: new Date().toISOString() },
-    { id: 5, employee_id: 'EMP005', name: 'Alex Rivera', email: 'alex.r@company.com', position: 'Marketing Lead', department: 'Marketing', risk_score: 0.65, last_prediction: new Date().toISOString() },
-    { id: 6, employee_id: 'EMP006', name: 'Lisa Wang', email: 'lisa.w@company.com', position: 'DevOps Engineer', department: 'Engineering', risk_score: 0.38, last_prediction: new Date().toISOString() }
-  ];
+  const generateMockEmployees = () => {
+    const departments = ['Engineering', 'Sales', 'Marketing', 'Product', 'HR', 'Operations'];
+    const positions = ['Manager', 'Senior Developer', 'Sales Rep', 'Marketing Specialist', 'Product Manager', 'HR Specialist'];
+    const names = [
+      'John Smith', 'Sarah Johnson', 'Mike Chen', 'Emily Davis', 'Alex Rivera',
+      'Jessica Wong', 'David Martinez', 'Lisa Anderson', 'Robert Taylor', 'Maria Garcia',
+      'James Wilson', 'Jennifer Lee', 'Michael Brown', 'Amanda Clark', 'Chris Rodriguez'
+    ];
+    
+    return names.map((name, index) => ({
+      id: index + 1,
+      employee_id: `EMP${String(index + 1).padStart(5, '0')}`,
+      name: name,
+      email: `${name.toLowerCase().replace(' ', '.')}@company.com`,
+      department: departments[index % departments.length],
+      position: positions[index % positions.length],
+      risk_score: Math.random() * 0.9 + 0.1,
+      tenure_years: Math.floor(Math.random() * 10) + 1,
+      last_promotion: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000 * 3).toISOString(),
+      manager: 'John Manager',
+      risk_factors: {
+        burnout_risk: Math.random() > 0.5 ? 'high' : Math.random() > 0.5 ? 'medium' : 'low',
+        low_engagement: Math.random() > 0.5 ? 'high' : Math.random() > 0.5 ? 'medium' : 'low',
+        negative_sentiment: Math.random() > 0.5 ? 'high' : Math.random() > 0.5 ? 'medium' : 'low',
+        social_isolation: Math.random() > 0.5 ? 'high' : Math.random() > 0.5 ? 'medium' : 'low'
+      },
+      last_prediction: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString()
+    }));
+  };
 
-  const filterAndSortEmployees = () => {
+  const applyFilters = () => {
     let filtered = [...employees];
 
     // Search filter
-    if (searchTerm) {
+    if (searchQuery) {
       filtered = filtered.filter(emp => 
-        emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.position.toLowerCase().includes(searchTerm.toLowerCase())
+        emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        emp.employee_id.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -126,10 +164,23 @@ const EmployeeRiskList = () => {
     return <TrendingDown className="w-4 h-4" />;
   };
 
-  // FIX: Add the navigation handler
+  // Navigation handler - ensure we're passing the correct ID
   const handleViewAnalysis = (employee) => {
+    // Store employee data in localStorage for the RiskAnalysis component
+    const storedEmployees = localStorage.getItem('employees') || '[]';
+    const employees = JSON.parse(storedEmployees);
+    const updatedEmployees = [...employees.filter(e => e.id !== employee.id), employee];
+    localStorage.setItem('employees', JSON.stringify(updatedEmployees));
+    
     // Navigate to the employee's analysis page
-    navigate(`/employees/${employee.employee_id || employee.id}`);
+    const employeeId = employee.employee_id || employee.id;
+    console.log('Navigating to employee:', employeeId, employee.name);
+    navigate(`/employees/${employeeId}`);
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchEmployees();
   };
 
   const departments = [...new Set(employees.map(emp => emp.department))];
@@ -151,29 +202,33 @@ const EmployeeRiskList = () => {
             <h2 className="text-2xl font-bold text-gray-900">Employee Risk Analysis</h2>
             <p className="text-gray-600 mt-1">Monitor and manage retention risks across your organization</p>
           </div>
-          
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Total: {filteredEmployees.length} employees</span>
-          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-gray-400"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
         </div>
 
-        {/* Filters Row */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
               placeholder="Search employees..."
-              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
             />
           </div>
 
           <select
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={departmentFilter}
             onChange={(e) => setDepartmentFilter(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
           >
             <option value="all">All Departments</option>
             {departments.map(dept => (
@@ -182,62 +237,63 @@ const EmployeeRiskList = () => {
           </select>
 
           <select
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={riskFilter}
             onChange={(e) => setRiskFilter(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
           >
             <option value="all">All Risk Levels</option>
-            <option value="high">High Risk (75%+)</option>
+            <option value="high">High Risk (≥75%)</option>
             <option value="medium">Medium Risk (50-74%)</option>
             <option value="low">Low Risk (&lt;50%)</option>
           </select>
 
           <select
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
           >
-            <option value="risk_desc">Highest Risk First</option>
-            <option value="risk_asc">Lowest Risk First</option>
+            <option value="risk_desc">Risk Score (High to Low)</option>
+            <option value="risk_asc">Risk Score (Low to High)</option>
             <option value="name">Name (A-Z)</option>
             <option value="department">Department</option>
           </select>
         </div>
       </div>
 
-      {/* Employee Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Employee Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredEmployees.map((employee) => (
-          <div
-            key={employee.id}
-            className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow"
-          >
+          <div key={employee.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow">
             <div className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
                   <h3 className="text-lg font-semibold text-gray-900">{employee.name}</h3>
-                  <p className="text-sm text-gray-600">{employee.position}</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {employee.position} • {employee.department}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    ID: {employee.employee_id}
+                  </p>
                 </div>
-                <div className={`px-2 py-1 rounded-full flex items-center gap-1 ${getRiskColor(employee.risk_score)}`}>
-                  {getRiskIcon(employee.risk_score)}
-                  <span className="text-sm font-medium">
-                    {(employee.risk_score * 100).toFixed(0)}%
+                <div className="ml-4">
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getRiskColor(employee.risk_score)}`}>
+                    {getRiskIcon(employee.risk_score)}
+                    <span className="ml-1">{(employee.risk_score * 100).toFixed(0)}%</span>
                   </span>
                 </div>
               </div>
 
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Department:</span>
-                  <span className="font-medium">{employee.department}</span>
+              <div className="mt-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Risk Level:</span>
+                  <span className="font-medium">
+                    {employee.risk_score >= 0.75 ? 'High' : 
+                     employee.risk_score >= 0.5 ? 'Medium' : 'Low'}
+                  </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Email:</span>
-                  <span className="text-gray-900 truncate ml-2">{employee.email}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Last Analysis:</span>
-                  <span className="text-gray-900">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Last Analysis:</span>
+                  <span className="text-gray-700">
                     {employee.last_prediction ? 
                       new Date(employee.last_prediction).toLocaleDateString() : 
                       'Never'}
@@ -247,7 +303,6 @@ const EmployeeRiskList = () => {
 
               <div className="mt-4 pt-4 border-t">
                 <div className="flex items-center justify-between">
-                  {/* FIX: Changed from just a button to one with onClick handler */}
                   <button 
                     onClick={() => handleViewAnalysis(employee)}
                     className="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors"
