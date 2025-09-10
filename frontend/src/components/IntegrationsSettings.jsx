@@ -4,6 +4,80 @@ import {
   Building2, Key, Database, Shield, ArrowRight, Info
 } from 'lucide-react';
 
+// Default HRIS systems to show if API fails
+const DEFAULT_HRIS_SYSTEMS = [
+  {
+    id: "bamboohr",
+    name: "BambooHR",
+    description: "Modern HR software with a focus on user experience",
+    required_fields: {
+      api_key: "API Key",
+      subdomain: "Company Subdomain"
+    },
+    documentation_url: "https://documentation.bamboohr.com/reference",
+    setup_time: "5 minutes"
+  },
+  {
+    id: "workday",
+    name: "Workday",
+    description: "Enterprise cloud applications for HR and finance",
+    required_fields: {
+      username: "Username",
+      password: "Password",
+      tenant: "Tenant ID"
+    },
+    optional_fields: {
+      endpoint: "Custom Endpoint URL"
+    },
+    documentation_url: "https://community.workday.com/api",
+    setup_time: "15 minutes"
+  },
+  {
+    id: "adp",
+    name: "ADP Workforce Now",
+    description: "Comprehensive HR management for mid-sized companies",
+    required_fields: {
+      client_id: "Client ID",
+      client_secret: "Client Secret",
+      org_code: "Organization Code"
+    },
+    documentation_url: "https://developers.adp.com",
+    setup_time: "10 minutes"
+  },
+  {
+    id: "successfactors",
+    name: "SAP SuccessFactors",
+    description: "Cloud-based HR solution suite",
+    required_fields: {
+      company_id: "Company ID",
+      username: "Username",
+      password: "Password"
+    },
+    optional_fields: {
+      api_endpoint: "API Endpoint"
+    },
+    documentation_url: "https://help.sap.com/docs/SAP_SUCCESSFACTORS_PLATFORM",
+    setup_time: "20 minutes"
+  }
+];
+
+const DEFAULT_AI_PROVIDERS = [
+  {
+    id: "openai",
+    name: "OpenAI GPT-4",
+    description: "Advanced language model for analyzing communication patterns",
+    features: ["Email sentiment analysis", "Meeting transcript analysis", "Chat message scoring"],
+    setup_time: "2 minutes"
+  },
+  {
+    id: "anthropic",
+    name: "Anthropic Claude",
+    description: "Constitutional AI for safe and helpful analysis",
+    features: ["Context-aware scoring", "Nuanced communication analysis", "Privacy-focused"],
+    setup_time: "2 minutes"
+  }
+];
+
 const IntegrationsSettings = () => {
   const [loading, setLoading] = useState({});
   const [integrations, setIntegrations] = useState({
@@ -18,7 +92,10 @@ const IntegrationsSettings = () => {
   const [currentSystem, setCurrentSystem] = useState(null);
   const [credentials, setCredentials] = useState({});
   const [testResult, setTestResult] = useState(null);
-  const [availableSystems, setAvailableSystems] = useState({ hris_systems: [], ai_providers: [] });
+  const [availableSystems, setAvailableSystems] = useState({ 
+    hris_systems: DEFAULT_HRIS_SYSTEMS, 
+    ai_providers: DEFAULT_AI_PROVIDERS 
+  });
 
   useEffect(() => {
     fetchIntegrationStatus();
@@ -81,10 +158,15 @@ const IntegrationsSettings = () => {
       
       if (response.ok) {
         const data = await response.json();
-        setAvailableSystems(data);
+        // Only update if we got valid data
+        if (data.hris_systems && data.hris_systems.length > 0) {
+          setAvailableSystems(data);
+        }
+        // Otherwise keep the default systems
       }
     } catch (error) {
       console.error('Error fetching available systems:', error);
+      // Keep default systems on error
     }
   };
 
@@ -95,15 +177,15 @@ const IntegrationsSettings = () => {
     setShowModal(true);
   };
 
-  const handleDisconnect = async (system) => {
-    if (!confirm(`Are you sure you want to disconnect from ${system}?`)) {
+  const handleDisconnect = async (systemId) => {
+    if (!confirm(`Are you sure you want to disconnect from ${systemId}?`)) {
       return;
     }
 
-    setLoading({ ...loading, [system]: true });
+    setLoading(prev => ({ ...prev, [systemId]: true }));
     
     try {
-      const response = await fetch(`/api/integrations/hris/disconnect/${system}`, {
+      const response = await fetch(`/api/integrations/hris/disconnect/${systemId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -113,23 +195,23 @@ const IntegrationsSettings = () => {
       if (response.ok) {
         setIntegrations(prev => ({
           ...prev,
-          [system]: { connected: false, lastSync: null }
+          [systemId]: { connected: false, lastSync: null }
         }));
-        alert(`Successfully disconnected from ${system}`);
+        alert(`Successfully disconnected from ${systemId}`);
       } else {
         const error = await response.json();
-        alert(`Failed to disconnect: ${error.detail}`);
+        alert(`Failed to disconnect: ${error.detail || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error disconnecting:', error);
       alert('Failed to disconnect. Please try again.');
     } finally {
-      setLoading({ ...loading, [system]: false });
+      setLoading(prev => ({ ...prev, [systemId]: false }));
     }
   };
 
   const handleTestConnection = async () => {
-    setLoading({ ...loading, test: true });
+    setLoading(prev => ({ ...prev, test: true }));
     setTestResult(null);
     
     try {
@@ -156,12 +238,12 @@ const IntegrationsSettings = () => {
       console.error('Error testing connection:', error);
       setTestResult({ success: false, error: 'Connection test failed' });
     } finally {
-      setLoading({ ...loading, test: false });
+      setLoading(prev => ({ ...prev, test: false }));
     }
   };
 
   const handleSaveConnection = async () => {
-    setLoading({ ...loading, save: true });
+    setLoading(prev => ({ ...prev, save: true }));
     
     try {
       const response = await fetch('/api/integrations/hris/connect', {
@@ -198,15 +280,15 @@ const IntegrationsSettings = () => {
       console.error('Error saving connection:', error);
       alert('Failed to save connection. Please try again.');
     } finally {
-      setLoading({ ...loading, save: false });
+      setLoading(prev => ({ ...prev, save: false }));
     }
   };
 
-  const handleSync = async (system) => {
-    setLoading({ ...loading, [`sync_${system}`]: true });
+  const handleSync = async (systemId) => {
+    setLoading(prev => ({ ...prev, [`sync_${systemId}`]: true }));
     
     try {
-      const response = await fetch(`/api/integrations/hris/sync?system=${system}`, {
+      const response = await fetch(`/api/integrations/hris/sync?system=${systemId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -226,7 +308,7 @@ const IntegrationsSettings = () => {
       console.error('Error starting sync:', error);
       alert('Failed to start sync. Please try again.');
     } finally {
-      setLoading({ ...loading, [`sync_${system}`]: false });
+      setLoading(prev => ({ ...prev, [`sync_${systemId}`]: false }));
     }
   };
 
@@ -234,7 +316,7 @@ const IntegrationsSettings = () => {
     const apiKey = prompt(`Enter your ${provider.name} API key:`);
     if (!apiKey) return;
     
-    setLoading({ ...loading, ai: true });
+    setLoading(prev => ({ ...prev, ai: true }));
     
     try {
       const response = await fetch('/api/integrations/ai-scoring/configure', {
@@ -268,12 +350,12 @@ const IntegrationsSettings = () => {
       console.error('Error configuring AI:', error);
       alert('Failed to configure AI scoring');
     } finally {
-      setLoading({ ...loading, ai: false });
+      setLoading(prev => ({ ...prev, ai: false }));
     }
   };
 
   const runBatchAIScoring = async () => {
-    setLoading({ ...loading, batch: true });
+    setLoading(prev => ({ ...prev, batch: true }));
     
     try {
       const response = await fetch('/api/integrations/ai-scoring/batch', {
@@ -294,94 +376,102 @@ const IntegrationsSettings = () => {
       console.error('Error starting batch scoring:', error);
       alert('Failed to start batch scoring');
     } finally {
-      setLoading({ ...loading, batch: false });
+      setLoading(prev => ({ ...prev, batch: false }));
     }
   };
 
-  const hrisSystems = availableSystems.hris_systems || [];
-  const aiProviders = availableSystems.ai_providers || [];
+  const hrisSystems = availableSystems.hris_systems || DEFAULT_HRIS_SYSTEMS;
+  const aiProviders = availableSystems.ai_providers || DEFAULT_AI_PROVIDERS;
 
   return (
     <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Integrations</h2>
+        <p className="text-sm text-gray-600">
+          Connect your HR systems and enable AI-powered features to enhance retention predictions.
+        </p>
+      </div>
+
+      {/* HRIS Integrations Section */}
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">HRIS Integrations</h3>
         <p className="text-sm text-gray-600 mb-6">
           Connect your HR system to automatically sync employee data and keep predictions up-to-date.
         </p>
-      </div>
 
-      {/* HRIS Integration Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {hrisSystems.map(system => {
-          const integration = integrations[system.id] || {};
-          
-          return (
-            <div key={system.id} className="bg-white border rounded-lg p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Building2 className="w-5 h-5 text-blue-600" />
+        {/* HRIS Integration Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {hrisSystems.map(system => {
+            const integration = integrations[system.id] || {};
+            
+            return (
+              <div key={system.id} className="bg-white border rounded-lg p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Building2 className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">{system.name}</h4>
+                      <p className="text-xs text-gray-500">{system.description}</p>
+                    </div>
                   </div>
+                </div>
+                
+                {integration.connected ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center text-green-600 text-sm">
+                      <CheckCircle className="w-4 h-4 mr-1" />
+                      Connected
+                    </div>
+                    {integration.employeeCount && (
+                      <p className="text-xs text-gray-600">
+                        {integration.employeeCount} employees synced
+                      </p>
+                    )}
+                    {integration.lastSync && (
+                      <p className="text-xs text-gray-500">
+                        Last sync: {new Date(integration.lastSync).toLocaleString()}
+                      </p>
+                    )}
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleSync(system.id)}
+                        disabled={loading[`sync_${system.id}`]}
+                        className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {loading[`sync_${system.id}`] ? 'Syncing...' : 'Sync Now'}
+                      </button>
+                      <button
+                        onClick={() => handleDisconnect(system.id)}
+                        disabled={loading[system.id]}
+                        className="px-3 py-1 text-sm border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50"
+                      >
+                        Disconnect
+                      </button>
+                    </div>
+                  </div>
+                ) : (
                   <div>
-                    <h4 className="font-semibold text-gray-900">{system.name}</h4>
-                    <p className="text-xs text-gray-500">{system.description}</p>
+                    {integration.error && (
+                      <p className="text-xs text-red-600 mb-2">{integration.error}</p>
+                    )}
+                    <button
+                      onClick={() => handleConnect(system)}
+                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center"
+                    >
+                      <Link2 className="w-4 h-4 mr-2" />
+                      Connect
+                    </button>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Setup time: ~{system.setup_time}
+                    </p>
                   </div>
-                </div>
+                )}
               </div>
-              
-              {integration.connected ? (
-                <div className="space-y-3">
-                  <div className="flex items-center text-green-600 text-sm">
-                    <CheckCircle className="w-4 h-4 mr-1" />
-                    Connected
-                  </div>
-                  {integration.employeeCount && (
-                    <p className="text-xs text-gray-600">
-                      {integration.employeeCount} employees synced
-                    </p>
-                  )}
-                  {integration.lastSync && (
-                    <p className="text-xs text-gray-500">
-                      Last sync: {new Date(integration.lastSync).toLocaleString()}
-                    </p>
-                  )}
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleSync(system.id)}
-                      disabled={loading[`sync_${system.id}`]}
-                      className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      {loading[`sync_${system.id}`] ? 'Syncing...' : 'Sync Now'}
-                    </button>
-                    <button
-                      onClick={() => handleDisconnect(system.id)}
-                      disabled={loading[system.id]}
-                      className="px-3 py-1 text-sm border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50"
-                    >
-                      Disconnect
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  {integration.error && (
-                    <p className="text-xs text-red-600 mb-2">{integration.error}</p>
-                  )}
-                  <button
-                    onClick={() => handleConnect(system)}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center"
-                  >
-                    <Link2 className="w-4 h-4 mr-2" />
-                    Connect
-                  </button>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Setup time: ~{system.setup_time}
-                  </p>
-                </div>
-              )}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* AI Scoring Section */}
@@ -417,18 +507,22 @@ const IntegrationsSettings = () => {
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {aiProviders.map(provider => (
-                  <button
-                    key={provider.id}
-                    onClick={() => handleAIProviderSetup(provider)}
-                    disabled={loading.ai}
-                    className="p-4 border border-indigo-300 rounded-lg hover:bg-white transition-colors text-left"
-                  >
-                    <h4 className="font-semibold text-gray-900">{provider.name}</h4>
-                    <p className="text-xs text-gray-600 mt-1">{provider.description}</p>
-                    <p className="text-xs text-indigo-600 mt-2">
-                      Setup time: {provider.setup_time}
-                    </p>
-                  </button>
+                  <div key={provider.id} className="bg-white rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-900 mb-2">{provider.name}</h4>
+                    <p className="text-xs text-gray-600 mb-3">{provider.description}</p>
+                    <ul className="text-xs text-gray-500 mb-3 space-y-1">
+                      {provider.features.map((feature, idx) => (
+                        <li key={idx}>• {feature}</li>
+                      ))}
+                    </ul>
+                    <button
+                      onClick={() => handleAIProviderSetup(provider)}
+                      disabled={loading.ai}
+                      className="w-full px-3 py-2 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                    >
+                      {loading.ai ? 'Setting up...' : 'Configure'}
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -439,7 +533,7 @@ const IntegrationsSettings = () => {
       {/* Connection Modal */}
       {showModal && currentSystem && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Connect to {currentSystem.name}</h3>
               <button
@@ -449,23 +543,25 @@ const IntegrationsSettings = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="space-y-4">
+              {/* Required Fields */}
               {Object.entries(currentSystem.required_fields || {}).map(([key, label]) => (
                 <div key={key}>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {label}
+                    {label} *
                   </label>
                   <input
-                    type={key.includes('secret') || key.includes('key') ? 'password' : 'text'}
+                    type={key.includes('password') || key.includes('secret') ? 'password' : 'text'}
                     value={credentials[key] || ''}
                     onChange={(e) => setCredentials({ ...credentials, [key]: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                     placeholder={`Enter ${label.toLowerCase()}`}
                   />
                 </div>
               ))}
               
+              {/* Optional Fields */}
               {Object.entries(currentSystem.optional_fields || {}).map(([key, label]) => (
                 <div key={key}>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -475,12 +571,13 @@ const IntegrationsSettings = () => {
                     type="text"
                     value={credentials[key] || ''}
                     onChange={(e) => setCredentials({ ...credentials, [key]: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                     placeholder={`Enter ${label.toLowerCase()}`}
                   />
                 </div>
               ))}
               
+              {/* Test Result */}
               {testResult && (
                 <div className={`p-3 rounded-md ${testResult.success ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
                   <div className="flex items-center">
@@ -498,6 +595,7 @@ const IntegrationsSettings = () => {
                 </div>
               )}
               
+              {/* Action Buttons */}
               <div className="flex space-x-3 pt-4">
                 <button
                   onClick={handleTestConnection}
@@ -515,6 +613,7 @@ const IntegrationsSettings = () => {
                 </button>
               </div>
               
+              {/* Documentation Link */}
               {currentSystem.documentation_url && (
                 <p className="text-xs text-center text-gray-500 pt-2">
                   Need help? <a 
