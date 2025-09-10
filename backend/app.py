@@ -1,164 +1,198 @@
-# backend/app.py
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+import uvicorn
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
 import logging
 from datetime import datetime, timedelta
+import random
 
-from database import engine, Base, get_db
 from config import settings
-from auth.auth_router import router as auth_router
-from api.v1.employees import router as employees_router
-from api.v1.predictions import router as predictions_router
-from api.v1.analytics import router as analytics_router
-from api.v1.upload import router as upload_router
-from api.v1.integrations import router as integrations_router
-from billing.billing_router import router as billing_router  # ADD THIS LINE
+from models import Base
+from models.user import User
+from models.company import Company
+from models.employee import Employee
+from models.prediction import Prediction
+from api.routes import router
+from api.auth_routes import auth_router
+from api.upload_routes import upload_router
+from services.ml_predictor import MLPredictor
 
-# Import models to ensure they're registered
-from models import User, Company, Employee, Prediction
-from models.subscription import Subscription, Invoice, UsageRecord, FeatureFlag  # ADD THIS LINE
-
-# Configure logging
+# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Create tables on startup
+# Database setup - handle SQLite differently
+if "sqlite" in settings.DATABASE_URL:
+    engine = create_engine(
+        settings.DATABASE_URL, 
+        connect_args={"check_same_thread": False}  # Needed for SQLite
+    )
+else:
+    engine = create_engine(settings.DATABASE_URL)
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Create tables
+Base.metadata.create_all(bind=engine)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup and shutdown events"""
     # Startup
-    logger.info("Starting up AI Employee Retention Predictor...")
-    Base.metadata.create_all(bind=engine)
-    logger.info("Database tables created/verified")
+    logger.info("Starting AI Retention Predictor")
+    # Initialize ML model
+    predictor = MLPredictor()
+    predictor.load_model()
     
-    # Initialize demo data if needed
-    from sqlalchemy.orm import Session
-    from models.subscription import PlanTier
-    db = next(get_db())
+    # Create some demo data
+    create_demo_data()
+    
+    yield
+    # Shutdown
+    logger.info("Shutting down AI Retention Predictor")
+
+app = FastAPI(
+    title=settings.APP_NAME,
+    version=settings.APP_VERSION,
+    lifespan=lifespan
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Dependency to get DB session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# Include API routes
+app.include_router(auth_router, prefix="/api/auth", tags=["authentication"])
+app.include_router(router, prefix="/api/v1", tags=["api"])
+app.include_router(upload_router, prefix="/api/v1", tags=["upload"])
+
+# Health check
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "version": settings.APP_VERSION}
+
+def create_demo_data():
+    """Create demo company and users for testing"""
+    from auth.auth_handler import auth_handler
+    
+    db = SessionLocal()
     
     try:
-        # Check if demo company exists, if not create it
+        # Check if we already have a demo company
         demo_company = db.query(Company).filter(Company.domain == "demo.com").first()
-        if not demo_company and settings.CREATE_DEMO_DATA:
-            from auth.auth_handler import auth_handler
-            
-            # Create demo company with trial plan
+        
+        if not demo_company:
+            # Create demo company
             demo_company = Company(
+                company_id="COMP12345678",
                 name="Demo Company",
                 domain="demo.com",
-                industry="Technology",
-                size="50-200",
-                plan_tier=PlanTier.TRIAL,  # ADD THIS
-                trial_ends_at=datetime.utcnow() + timedelta(days=14),  # ADD THIS
-                created_at=datetime.utcnow()
+                subscription_plan="trial",
+                billing_email="admin@demo.com",
+                trial_ends_at=datetime.utcnow() + timedelta(days=30)
             )
             db.add(demo_company)
-            db.commit()
             
             # Create demo admin user
-            hashed_password = auth_handler.get_password_hash("demo123")
-            demo_user = User(
+            demo_admin = User(
                 email="admin@demo.com",
-                username="admin",
+                hashed_password=auth_handler.get_password_hash("demo123"),
                 full_name="Demo Admin",
-                hashed_password=hashed_password,
-                company_id=demo_company.id,
                 role="admin",
-                is_active=True
-            )
-            db.add(demo_user)
-            
-            # Create demo subscription
-            demo_subscription = Subscription(
-                company_id=demo_company.id,
-                plan_tier=PlanTier.TRIAL,
+                company_id="COMP12345678",
+                can_view_all_employees=True,
+                can_run_predictions=True,
+                can_manage_interventions=True,
+                can_manage_company=True,
                 is_active=True,
-                started_at=datetime.utcnow(),
-                trial_ends_at=datetime.utcnow() + timedelta(days=14)
+                is_verified=True
             )
-            db.add(demo_subscription)
+            db.add(demo_admin)
+            
+            # Create demo HR user
+            demo_hr = User(
+                email="hr@demo.com",
+                hashed_password=auth_handler.get_password_hash("demo123"),
+                full_name="Demo HR",
+                role="hr",
+                company_id="COMP12345678",
+                can_view_all_employees=True,
+                can_run_predictions=False,
+                can_manage_interventions=True,
+                can_manage_company=False,
+                is_active=True,
+                is_verified=True
+            )
+            db.add(demo_hr)
             
             db.commit()
-            logger.info("Demo data created successfully")
+            logger.info("Demo company and users created successfully")
+            logger.info("Login with: admin@demo.com / demo123")
+        
+        # Check if we already have demo employees
+        if db.query(Employee).count() == 0:
+            # Create demo employees
+            departments = ['Engineering', 'Marketing', 'Sales', 'HR', 'Product']
+            positions = ['Junior', 'Senior', 'Lead', 'Manager', 'Director']
+            
+            for i in range(50):
+                department = random.choice(departments)
+                position = random.choice(positions)
+                
+                employee = Employee(
+                    employee_id=f"EMP{str(i+1).zfill(5)}",
+                    email=f"employee{i+1}@demo.com",
+                    name=f"Employee {i+1}",
+                    department=department,
+                    position=f"{position} {department}",
+                    manager_id=f"EMP{str(random.randint(1, 10)).zfill(5)}",
+                    hire_date=datetime.now() - timedelta(days=random.randint(30, 1825)),
+                    salary=random.randint(50000, 150000),
+                    performance_score=random.uniform(2.5, 5.0),
+                    engagement_score=random.uniform(2.0, 5.0),
+                    company_id="COMP12345678",
+                    is_active=True,
+                    current_risk_score=random.uniform(0.1, 0.95),
+                    risk_factors=["Low engagement", "High workload", "Market competitiveness"][:random.randint(0, 3)]
+                )
+                db.add(employee)
+            
+            # Create a few predictions for demo
+            for i in range(10):
+                prediction = Prediction(
+                    employee_id=f"EMP{str(random.randint(1, 50)).zfill(5)}",
+                    prediction_date=datetime.now() - timedelta(days=random.randint(1, 30)),
+                    risk_score=random.uniform(0.1, 0.95),
+                    confidence_score=random.uniform(0.7, 0.99),
+                    prediction_horizon_days=90,
+                    risk_factors=["Low engagement", "High workload", "Market competitiveness"][:random.randint(1, 3)],
+                    model_version="v1.0"
+                )
+                db.add(prediction)
+            
+            db.commit()
+            logger.info("Demo employees created successfully")
+            
     except Exception as e:
         logger.error(f"Error creating demo data: {e}")
         db.rollback()
     finally:
         db.close()
-    
-    yield
-    
-    # Shutdown
-    logger.info("Shutting down...")
-
-# Create FastAPI app
-app = FastAPI(
-    title=settings.APP_NAME,
-    version=settings.APP_VERSION,
-    description="AI-powered employee retention prediction system with subscription management",
-    lifespan=lifespan
-)
-
-# Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
-    allow_methods=settings.CORS_ALLOW_METHODS,
-    allow_headers=settings.CORS_ALLOW_HEADERS,
-)
-
-# Include routers
-app.include_router(auth_router)
-app.include_router(employees_router)
-app.include_router(predictions_router)
-app.include_router(analytics_router)
-app.include_router(upload_router)
-app.include_router(integrations_router)
-app.include_router(billing_router)  # ADD THIS LINE
-
-# Root endpoint
-@app.get("/")
-async def root():
-    return {
-        "message": "AI Employee Retention Predictor API",
-        "version": settings.APP_VERSION,
-        "docs": "/docs",
-        "health": "/health"
-    }
-
-# Health check endpoint
-@app.get("/health")
-async def health_check():
-    return {
-        "status": "healthy",
-        "timestamp": datetime.utcnow(),
-        "version": settings.APP_VERSION
-    }
-
-# Global exception handler
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request, exc):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail}
-    )
-
-@app.exception_handler(Exception)
-async def general_exception_handler(request, exc):
-    logger.error(f"Unhandled exception: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error"}
-    )
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "app:app",
-        host=settings.HOST,
-        port=settings.PORT,
-        reload=settings.RELOAD
-    )
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
