@@ -1,549 +1,536 @@
-// frontend/src/components/IntegrationsSettings.jsx
 import React, { useState, useEffect } from 'react';
 import { 
-  Slack, Mail, Calendar, Brain, Shield, CheckCircle, 
-  AlertCircle, Settings, Link2, Loader, RefreshCw 
+  Brain, Link2, CheckCircle, Loader, AlertCircle, X,
+  Building2, Key, Database, Shield, ArrowRight, Info
 } from 'lucide-react';
-import { api } from '../services/api';
 
 const IntegrationsSettings = () => {
+  const [loading, setLoading] = useState({});
   const [integrations, setIntegrations] = useState({
-    slack: { connected: false, status: 'disconnected', lastSync: null },
-    google: { connected: false, status: 'disconnected', lastSync: null },
-    microsoft: { connected: false, status: 'disconnected', lastSync: null },
-    ai_scoring: { enabled: false, status: 'inactive', lastRun: null }
+    bamboohr: { connected: false, lastSync: null },
+    workday: { connected: false, lastSync: null },
+    adp: { connected: false, lastSync: null },
+    successfactors: { connected: false, lastSync: null },
+    ai_scoring: { enabled: false, provider: null }
   });
   
-  const [loading, setLoading] = useState({});
-  const [aiConfig, setAiConfig] = useState({
-    autoScore: false,
-    scoreFrequency: 'daily',
-    includeSlack: true,
-    includeEmail: true,
-    includeCalendar: true,
-    confidenceThreshold: 0.7
-  });
+  const [showModal, setShowModal] = useState(false);
+  const [currentSystem, setCurrentSystem] = useState(null);
+  const [credentials, setCredentials] = useState({});
+  const [testResult, setTestResult] = useState(null);
+  const [availableSystems, setAvailableSystems] = useState({ hris_systems: [], ai_providers: [] });
 
-  const handleSlackConnect = async () => {
-    setLoading({ ...loading, slack: true });
-    
+  useEffect(() => {
+    fetchIntegrationStatus();
+    fetchAvailableSystems();
+  }, []);
+
+  const fetchIntegrationStatus = async () => {
     try {
-      // OAuth flow
-      const response = await api.post('/api/integrations/slack/auth', {
-        redirect_uri: window.location.origin + '/settings/integrations/callback'
+      // Fetch HRIS status
+      const hrisResponse = await fetch('/api/integrations/hris/status', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       });
       
-      // Open OAuth window
-      const authWindow = window.open(
-        response.data.auth_url,
-        'Slack Authorization',
-        'width=500,height=600'
-      );
-      
-      // Listen for callback
-      const checkAuth = setInterval(() => {
-        if (authWindow.closed) {
-          clearInterval(checkAuth);
-          checkSlackConnection();
+      if (hrisResponse.ok) {
+        const hrisData = await hrisResponse.json();
+        const hrisStatus = {};
+        hrisData.forEach(system => {
+          hrisStatus[system.system] = {
+            connected: system.connected,
+            lastSync: system.last_sync,
+            employeeCount: system.employee_count,
+            error: system.error
+          };
+        });
+        setIntegrations(prev => ({ ...prev, ...hrisStatus }));
+      }
+
+      // Fetch AI scoring status
+      const aiResponse = await fetch('/api/integrations/ai-scoring/status', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
-      }, 1000);
+      });
       
+      if (aiResponse.ok) {
+        const aiData = await aiResponse.json();
+        setIntegrations(prev => ({
+          ...prev,
+          ai_scoring: {
+            enabled: aiData.enabled,
+            provider: aiData.provider,
+            configured_at: aiData.configured_at
+          }
+        }));
+      }
     } catch (error) {
-      console.error('Error connecting Slack:', error);
-    } finally {
-      setLoading({ ...loading, slack: false });
+      console.error('Error fetching integration status:', error);
     }
   };
 
-  const handleGoogleConnect = async () => {
-    setLoading({ ...loading, google: true });
-    
+  const fetchAvailableSystems = async () => {
     try {
-      const response = await api.post('/api/integrations/google/auth', {
-        scopes: ['email', 'calendar', 'gmail.readonly']
+      const response = await fetch('/api/integrations/available-systems', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       });
       
-      const authWindow = window.open(
-        response.data.auth_url,
-        'Google Authorization',
-        'width=500,height=600'
-      );
-      
-      const checkAuth = setInterval(() => {
-        if (authWindow.closed) {
-          clearInterval(checkAuth);
-          checkGoogleConnection();
-        }
-      }, 1000);
-      
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableSystems(data);
+      }
     } catch (error) {
-      console.error('Error connecting Google:', error);
-    } finally {
-      setLoading({ ...loading, google: false });
+      console.error('Error fetching available systems:', error);
     }
   };
 
-  const handleMicrosoftConnect = async () => {
-    setLoading({ ...loading, microsoft: true });
+  const handleConnect = (system) => {
+    setCurrentSystem(system);
+    setCredentials({});
+    setTestResult(null);
+    setShowModal(true);
+  };
+
+  const handleDisconnect = async (system) => {
+    if (!confirm(`Are you sure you want to disconnect from ${system}?`)) {
+      return;
+    }
+
+    setLoading({ ...loading, [system]: true });
     
     try {
-      const response = await api.post('/api/integrations/microsoft/auth', {
-        scopes: ['Mail.Read', 'Calendars.Read', 'User.Read']
+      const response = await fetch(`/api/integrations/hris/disconnect/${system}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       });
       
-      const authWindow = window.open(
-        response.data.auth_url,
-        'Microsoft Authorization',
-        'width=500,height=600'
-      );
-      
-      const checkAuth = setInterval(() => {
-        if (authWindow.closed) {
-          clearInterval(checkAuth);
-          checkMicrosoftConnection();
-        }
-      }, 1000);
-      
+      if (response.ok) {
+        setIntegrations(prev => ({
+          ...prev,
+          [system]: { connected: false, lastSync: null }
+        }));
+        alert(`Successfully disconnected from ${system}`);
+      } else {
+        const error = await response.json();
+        alert(`Failed to disconnect: ${error.detail}`);
+      }
     } catch (error) {
-      console.error('Error connecting Microsoft:', error);
+      console.error('Error disconnecting:', error);
+      alert('Failed to disconnect. Please try again.');
     } finally {
-      setLoading({ ...loading, microsoft: false });
+      setLoading({ ...loading, [system]: false });
     }
   };
 
-  const enableAIScoring = async () => {
+  const handleTestConnection = async () => {
+    setLoading({ ...loading, test: true });
+    setTestResult(null);
+    
+    try {
+      const response = await fetch('/api/integrations/hris/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          system: currentSystem.id,
+          credentials: credentials,
+          test_only: true
+        })
+      });
+      
+      const result = await response.json();
+      setTestResult(result);
+      
+      if (!result.success) {
+        alert(`Test failed: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error testing connection:', error);
+      setTestResult({ success: false, error: 'Connection test failed' });
+    } finally {
+      setLoading({ ...loading, test: false });
+    }
+  };
+
+  const handleSaveConnection = async () => {
+    setLoading({ ...loading, save: true });
+    
+    try {
+      const response = await fetch('/api/integrations/hris/connect', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          system: currentSystem.id,
+          credentials: credentials,
+          test_only: false
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setIntegrations(prev => ({
+          ...prev,
+          [currentSystem.id]: { 
+            connected: true, 
+            lastSync: null,
+            employeeCount: result.employee_count 
+          }
+        }));
+        setShowModal(false);
+        alert(`Successfully connected to ${currentSystem.name}!`);
+        fetchIntegrationStatus(); // Refresh status
+      } else {
+        alert(`Failed to connect: ${result.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error saving connection:', error);
+      alert('Failed to save connection. Please try again.');
+    } finally {
+      setLoading({ ...loading, save: false });
+    }
+  };
+
+  const handleSync = async (system) => {
+    setLoading({ ...loading, [`sync_${system}`]: true });
+    
+    try {
+      const response = await fetch(`/api/integrations/hris/sync?system=${system}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        alert('Sync started! This may take a few minutes.');
+        // Refresh status after a delay
+        setTimeout(fetchIntegrationStatus, 5000);
+      } else {
+        alert('Failed to start sync');
+      }
+    } catch (error) {
+      console.error('Error starting sync:', error);
+      alert('Failed to start sync. Please try again.');
+    } finally {
+      setLoading({ ...loading, [`sync_${system}`]: false });
+    }
+  };
+
+  const handleAIProviderSetup = async (provider) => {
+    const apiKey = prompt(`Enter your ${provider.name} API key:`);
+    if (!apiKey) return;
+    
     setLoading({ ...loading, ai: true });
     
     try {
-      const response = await api.post('/api/integrations/ai-scoring/enable', aiConfig);
+      const response = await fetch('/api/integrations/ai-scoring/configure', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          provider: provider.id,
+          api_key: apiKey,
+          test_only: false
+        })
+      });
       
-      if (response.data.success) {
-        setIntegrations({
-          ...integrations,
-          ai_scoring: {
-            enabled: true,
-            status: 'active',
-            lastRun: new Date().toISOString()
+      const result = await response.json();
+      
+      if (result.success) {
+        setIntegrations(prev => ({
+          ...prev,
+          ai_scoring: { 
+            enabled: true, 
+            provider: provider.id 
           }
-        });
-        
-        // Save to localStorage
-        localStorage.setItem('ai_scoring_enabled', 'true');
-        localStorage.setItem('ai_config', JSON.stringify(aiConfig));
-        
-        alert('AI Scoring enabled successfully!');
+        }));
+        alert(`AI scoring configured with ${provider.name}!`);
+      } else {
+        alert(`Failed to configure AI: ${result.error || 'Invalid API key'}`);
       }
     } catch (error) {
-      console.error('Error enabling AI scoring:', error);
-      alert('Failed to enable AI scoring. Please check your API keys.');
+      console.error('Error configuring AI:', error);
+      alert('Failed to configure AI scoring');
     } finally {
       setLoading({ ...loading, ai: false });
     }
   };
 
-  const runAIAnalysis = async () => {
-    setLoading({ ...loading, analysis: true });
+  const runBatchAIScoring = async () => {
+    setLoading({ ...loading, batch: true });
     
     try {
-      const response = await api.post('/api/integrations/ai-scoring/run');
+      const response = await fetch('/api/integrations/ai-scoring/batch', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       
-      if (response.data.success) {
-        alert(`AI Analysis complete! Processed ${response.data.employees_processed} employees.`);
-        
-        // Refresh dashboard data
-        window.dispatchEvent(new CustomEvent('dataUpdated', { 
-          detail: { source: 'ai_analysis' }
-        }));
+      const result = await response.json();
+      
+      if (result.success) {
+        alert('AI scoring started for all employees! This will run in the background.');
+      } else {
+        alert('Failed to start AI scoring');
       }
     } catch (error) {
-      console.error('Error running AI analysis:', error);
+      console.error('Error starting batch scoring:', error);
+      alert('Failed to start batch scoring');
     } finally {
-      setLoading({ ...loading, analysis: false });
+      setLoading({ ...loading, batch: false });
     }
   };
 
-  const checkSlackConnection = async () => {
-    try {
-      const response = await api.get('/api/integrations/slack/status');
-      setIntegrations({
-        ...integrations,
-        slack: response.data
-      });
-    } catch (error) {
-      console.error('Error checking Slack status:', error);
-    }
-  };
-
-  const checkGoogleConnection = async () => {
-    try {
-      const response = await api.get('/api/integrations/google/status');
-      setIntegrations({
-        ...integrations,
-        google: response.data
-      });
-    } catch (error) {
-      console.error('Error checking Google status:', error);
-    }
-  };
-
-  const checkMicrosoftConnection = async () => {
-    try {
-      const response = await api.get('/api/integrations/microsoft/status');
-      setIntegrations({
-        ...integrations,
-        microsoft: response.data
-      });
-    } catch (error) {
-      console.error('Error checking Microsoft status:', error);
-    }
-  };
-
-  useEffect(() => {
-    // Check all connection statuses on mount
-    checkSlackConnection();
-    checkGoogleConnection();
-    checkMicrosoftConnection();
-    
-    // Load AI config from localStorage
-    const savedConfig = localStorage.getItem('ai_config');
-    if (savedConfig) {
-      setAiConfig(JSON.parse(savedConfig));
-    }
-    
-    const aiEnabled = localStorage.getItem('ai_scoring_enabled') === 'true';
-    if (aiEnabled) {
-      setIntegrations(prev => ({
-        ...prev,
-        ai_scoring: { ...prev.ai_scoring, enabled: true, status: 'active' }
-      }));
-    }
-  }, []);
+  const hrisSystems = availableSystems.hris_systems || [];
+  const aiProviders = availableSystems.ai_providers || [];
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Third-Party Integrations</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">HRIS Integrations</h3>
         <p className="text-sm text-gray-600 mb-6">
-          Connect your communication and productivity tools for enhanced engagement scoring and better predictions.
+          Connect your HR system to automatically sync employee data and keep predictions up-to-date.
         </p>
       </div>
 
-      {/* Integration Cards */}
-      <div className="space-y-4">
-        {/* Slack Integration */}
-        <div className="bg-white border rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Slack className="w-6 h-6 text-purple-600" />
+      {/* HRIS Integration Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {hrisSystems.map(system => {
+          const integration = integrations[system.id] || {};
+          
+          return (
+            <div key={system.id} className="bg-white border rounded-lg p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Building2 className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900">{system.name}</h4>
+                    <p className="text-xs text-gray-500">{system.description}</p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <h4 className="font-semibold text-gray-900">Slack</h4>
-                <p className="text-sm text-gray-600">Analyze communication patterns and sentiment</p>
-                {integrations.slack.connected && (
-                  <p className="text-xs text-green-600 mt-1">
-                    Last synced: {new Date(integrations.slack.lastSync).toLocaleString()}
-                  </p>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              {integrations.slack.connected ? (
-                <>
-                  <span className="flex items-center text-green-600 text-sm">
+              
+              {integration.connected ? (
+                <div className="space-y-3">
+                  <div className="flex items-center text-green-600 text-sm">
                     <CheckCircle className="w-4 h-4 mr-1" />
                     Connected
-                  </span>
-                  <button
-                    onClick={() => handleDisconnect('slack')}
-                    className="px-3 py-1 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-                  >
-                    Disconnect
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={handleSlackConnect}
-                  disabled={loading.slack}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 flex items-center"
-                >
-                  {loading.slack ? (
-                    <Loader className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Link2 className="w-4 h-4 mr-2" />
+                  </div>
+                  {integration.employeeCount && (
+                    <p className="text-xs text-gray-600">
+                      {integration.employeeCount} employees synced
+                    </p>
                   )}
-                  Connect
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Google Workspace Integration */}
-        <div className="bg-white border rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Mail className="w-6 h-6 text-blue-600" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-900">Google Workspace</h4>
-                <p className="text-sm text-gray-600">Email patterns and calendar analytics</p>
-                {integrations.google.connected && (
-                  <p className="text-xs text-green-600 mt-1">
-                    Last synced: {new Date(integrations.google.lastSync).toLocaleString()}
+                  {integration.lastSync && (
+                    <p className="text-xs text-gray-500">
+                      Last sync: {new Date(integration.lastSync).toLocaleString()}
+                    </p>
+                  )}
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleSync(system.id)}
+                      disabled={loading[`sync_${system.id}`]}
+                      className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {loading[`sync_${system.id}`] ? 'Syncing...' : 'Sync Now'}
+                    </button>
+                    <button
+                      onClick={() => handleDisconnect(system.id)}
+                      disabled={loading[system.id]}
+                      className="px-3 py-1 text-sm border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50"
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  {integration.error && (
+                    <p className="text-xs text-red-600 mb-2">{integration.error}</p>
+                  )}
+                  <button
+                    onClick={() => handleConnect(system)}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center"
+                  >
+                    <Link2 className="w-4 h-4 mr-2" />
+                    Connect
+                  </button>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Setup time: ~{system.setup_time}
                   </p>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              {integrations.google.connected ? (
-                <>
-                  <span className="flex items-center text-green-600 text-sm">
-                    <CheckCircle className="w-4 h-4 mr-1" />
-                    Connected
-                  </span>
-                  <button
-                    onClick={() => handleDisconnect('google')}
-                    className="px-3 py-1 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-                  >
-                    Disconnect
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={handleGoogleConnect}
-                  disabled={loading.google}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center"
-                >
-                  {loading.google ? (
-                    <Loader className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Link2 className="w-4 h-4 mr-2" />
-                  )}
-                  Connect
-                </button>
+                </div>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* Microsoft 365 Integration */}
-        <div className="bg-white border rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-orange-600" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-900">Microsoft 365</h4>
-                <p className="text-sm text-gray-600">Teams, Outlook, and calendar data</p>
-                {integrations.microsoft.connected && (
-                  <p className="text-xs text-green-600 mt-1">
-                    Last synced: {new Date(integrations.microsoft.lastSync).toLocaleString()}
-                  </p>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              {integrations.microsoft.connected ? (
-                <>
-                  <span className="flex items-center text-green-600 text-sm">
-                    <CheckCircle className="w-4 h-4 mr-1" />
-                    Connected
-                  </span>
-                  <button
-                    onClick={() => handleDisconnect('microsoft')}
-                    className="px-3 py-1 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-                  >
-                    Disconnect
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={handleMicrosoftConnect}
-                  disabled={loading.microsoft}
-                  className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 flex items-center"
-                >
-                  {loading.microsoft ? (
-                    <Loader className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Link2 className="w-4 h-4 mr-2" />
-                  )}
-                  Connect
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
 
-      {/* AI Scoring Configuration */}
+      {/* AI Scoring Section */}
       <div className="mt-8">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">AI-Powered Engagement Scoring</h3>
         
         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-6">
-          <div className="flex items-start space-x-4">
-            <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-sm">
-              <Brain className="w-6 h-6 text-indigo-600" />
-            </div>
-            <div className="flex-1">
-              <h4 className="font-semibold text-gray-900">Advanced AI Analysis</h4>
-              <p className="text-sm text-gray-600 mt-1">
-                Use artificial intelligence to automatically analyze communication patterns, email sentiment, 
-                and calendar changes to generate highly accurate engagement scores.
-              </p>
-              
-              {integrations.ai_scoring.enabled ? (
-                <div className="mt-4 p-4 bg-white rounded-lg">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm font-medium text-green-600 flex items-center">
-                      <CheckCircle className="w-4 h-4 mr-1" />
-                      AI Scoring Active
-                    </span>
-                    <button
-                      onClick={runAIAnalysis}
-                      disabled={loading.analysis}
-                      className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center"
-                    >
-                      {loading.analysis ? (
-                        <Loader className="w-4 h-4 mr-1 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-4 h-4 mr-1" />
-                      )}
-                      Run Analysis Now
-                    </button>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Auto-score frequency:</span>
-                      <select
-                        value={aiConfig.scoreFrequency}
-                        onChange={(e) => setAiConfig({...aiConfig, scoreFrequency: e.target.value})}
-                        className="px-2 py-1 border border-gray-300 rounded-md text-sm"
-                      >
-                        <option value="realtime">Real-time</option>
-                        <option value="hourly">Hourly</option>
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                      </select>
-                    </div>
-                    
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Confidence threshold:</span>
-                      <input
-                        type="number"
-                        min="0.5"
-                        max="1"
-                        step="0.1"
-                        value={aiConfig.confidenceThreshold}
-                        onChange={(e) => setAiConfig({...aiConfig, confidenceThreshold: parseFloat(e.target.value)})}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded-md text-sm"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2 pt-2">
-                      <label className="flex items-center text-sm">
-                        <input
-                          type="checkbox"
-                          checked={aiConfig.includeSlack}
-                          onChange={(e) => setAiConfig({...aiConfig, includeSlack: e.target.checked})}
-                          className="mr-2"
-                        />
-                        Include Slack data in analysis
-                      </label>
-                      <label className="flex items-center text-sm">
-                        <input
-                          type="checkbox"
-                          checked={aiConfig.includeEmail}
-                          onChange={(e) => setAiConfig({...aiConfig, includeEmail: e.target.checked})}
-                          className="mr-2"
-                        />
-                        Include email patterns in analysis
-                      </label>
-                      <label className="flex items-center text-sm">
-                        <input
-                          type="checkbox"
-                          checked={aiConfig.includeCalendar}
-                          onChange={(e) => setAiConfig({...aiConfig, includeCalendar: e.target.checked})}
-                          className="mr-2"
-                        />
-                        Include calendar data in analysis
-                      </label>
-                    </div>
-                    
-                    <div className="pt-3">
-                      <button
-                        onClick={() => saveAIConfig()}
-                        className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm"
-                      >
-                        Update Configuration
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-4">
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 mb-4">
-                    <p className="text-sm text-yellow-800 flex items-start">
-                      <AlertCircle className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
-                      Connect at least one integration above before enabling AI scoring for best results.
+          {integrations.ai_scoring.enabled ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Brain className="w-6 h-6 text-indigo-600" />
+                  <div>
+                    <p className="font-semibold text-gray-900">AI Scoring Active</p>
+                    <p className="text-sm text-gray-600">
+                      Provider: {integrations.ai_scoring.provider}
                     </p>
                   </div>
-                  
-                  <button
-                    onClick={enableAIScoring}
-                    disabled={loading.ai || (!integrations.slack.connected && !integrations.google.connected && !integrations.microsoft.connected)}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                  >
-                    {loading.ai ? (
-                      <Loader className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Brain className="w-4 h-4 mr-2" />
-                    )}
-                    Enable AI Scoring
-                  </button>
                 </div>
+                <button
+                  onClick={runBatchAIScoring}
+                  disabled={loading.batch}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {loading.batch ? 'Running...' : 'Run Analysis'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p className="text-gray-700 mb-4">
+                Enable AI to automatically analyze communication patterns and generate accurate engagement scores.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {aiProviders.map(provider => (
+                  <button
+                    key={provider.id}
+                    onClick={() => handleAIProviderSetup(provider)}
+                    disabled={loading.ai}
+                    className="p-4 border border-indigo-300 rounded-lg hover:bg-white transition-colors text-left"
+                  >
+                    <h4 className="font-semibold text-gray-900">{provider.name}</h4>
+                    <p className="text-xs text-gray-600 mt-1">{provider.description}</p>
+                    <p className="text-xs text-indigo-600 mt-2">
+                      Setup time: {provider.setup_time}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Connection Modal */}
+      {showModal && currentSystem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Connect to {currentSystem.name}</h3>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {Object.entries(currentSystem.required_fields || {}).map(([key, label]) => (
+                <div key={key}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {label}
+                  </label>
+                  <input
+                    type={key.includes('secret') || key.includes('key') ? 'password' : 'text'}
+                    value={credentials[key] || ''}
+                    onChange={(e) => setCredentials({ ...credentials, [key]: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder={`Enter ${label.toLowerCase()}`}
+                  />
+                </div>
+              ))}
+              
+              {Object.entries(currentSystem.optional_fields || {}).map(([key, label]) => (
+                <div key={key}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {label} (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={credentials[key] || ''}
+                    onChange={(e) => setCredentials({ ...credentials, [key]: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder={`Enter ${label.toLowerCase()}`}
+                  />
+                </div>
+              ))}
+              
+              {testResult && (
+                <div className={`p-3 rounded-md ${testResult.success ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+                  <div className="flex items-center">
+                    {testResult.success ? (
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 mr-2" />
+                    )}
+                    <span className="text-sm">
+                      {testResult.success 
+                        ? `Test successful! Found ${testResult.employee_count || 0} employees.`
+                        : testResult.error}
+                    </span>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex space-x-3 pt-4">
+                <button
+                  onClick={handleTestConnection}
+                  disabled={loading.test || !Object.keys(credentials).length}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                >
+                  {loading.test ? 'Testing...' : 'Test Connection'}
+                </button>
+                <button
+                  onClick={handleSaveConnection}
+                  disabled={loading.save || !testResult?.success}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {loading.save ? 'Saving...' : 'Save & Connect'}
+                </button>
+              </div>
+              
+              {currentSystem.documentation_url && (
+                <p className="text-xs text-center text-gray-500 pt-2">
+                  Need help? <a 
+                    href={currentSystem.documentation_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    View documentation
+                  </a>
+                </p>
               )}
             </div>
           </div>
         </div>
-      </div>
-
-      {/* API Configuration */}
-      <div className="mt-8">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">API Configuration</h3>
-        
-        <div className="bg-white border rounded-lg p-6">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                OpenAI API Key
-              </label>
-              <input
-                type="password"
-                placeholder="sk-..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                onChange={(e) => localStorage.setItem('openai_api_key', e.target.value)}
-              />
-              <p className="text-xs text-gray-500 mt-1">Required for AI-powered engagement scoring</p>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Webhook URL (Optional)
-              </label>
-              <input
-                type="url"
-                placeholder="https://your-domain.com/webhook"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-              <p className="text-xs text-gray-500 mt-1">Receive real-time updates when risk scores change</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };
