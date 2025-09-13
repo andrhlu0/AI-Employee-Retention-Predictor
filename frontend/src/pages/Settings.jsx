@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import BillingSettings from '../components/Settings/BillingSettings';
 import IntegrationsSettings from '../components/IntegrationsSettings';
+import IntegrationsComingSoon from '../components/IntegrationsComingSoon';
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('general');
@@ -228,10 +229,8 @@ const Settings = () => {
             )}
 
             {/* Integrations Settings - Now using the IntegrationsSettings component */}
-            {activeTab === 'integrations' && (
-              <IntegrationsSettings />
-            )}
-
+            {activeTab === 'integrations' && <IntegrationsComingSoon />}
+            
             {/* Security Settings */}
             {activeTab === 'security' && (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
