@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing - RetentionAI | Transparent Pricing for Every Team Size</title>
+    <meta name="description" content="Choose the perfect RetentionAI plan for your organization. Start with a 14-day free trial. No credit card required.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <style>
+        .pricing-hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 8rem 2rem 4rem;
+            text-align: center;
+            color: white;
+        }
+
+        .pricing-hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .pricing-toggle {
+            display: inline-flex;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50px;
+            padding: 4px;
+            margin: 2rem 0;
+        }
+
+        .toggle-option {
+            padding: 0.75rem 2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .toggle-option.active {
+            background: white;
+            color: var(--primary);
+        }
+
+        .pricing-container {
+            max-width: 1200px;
+            margin: -2rem auto 4rem;
+            padding: 0 2rem;
+        }
+
+        .pricing-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .pricing-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 2.5rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            position: relative;
+            transition: transform 0.3s;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+
+        .pricing-card.recommended {
+            border: 3px solid var(--primary);
+            transform: scale(1.05);
+        }
+
+        .recommended-badge {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.875rem;
+        }
+
+        .price-display {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin: 1rem 0;
+        }
+
+        .price-display .currency {
+            font-size: 1.5rem;
+            vertical-align: super;
+        }
+
+        .price-display .period {
+            font-size: 1rem;
+            color: var(--gray);
+            font-weight: 500;
+        }
+
+        .annual-savings {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin: 2rem 0;
+        }
+
+        .feature-list li {
+            padding: 0.75rem 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .feature-list .check {
+            color: #10b981;
+            font-weight: 700;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .feature-list .cross {
+            color: #ef4444;
+            font-weight: 700;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .comparison-table {
+            background: white;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin: 4rem 0;
+        }
+
+        .comparison-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .comparison-table th {
+            background: var(--light-gray);
+            padding: 1.5rem;
+            text-align: left;
+            font-weight: 700;
+        }
+
+        .comparison-table td {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--light-gray);
+        }
+
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .faq-section {
+            max-width: 800px;
+            margin: 4rem auto;
+            padding: 0 2rem;
+        }
+
+        .faq-item {
+            background: white;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .faq-question {
+            padding: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .faq-question:hover {
+            background: var(--light-gray);
+        }
+
+        .faq-answer {
+            padding: 0 1.5rem;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s, padding 0.3s;
+        }
+
+        .faq-item.active .faq-answer {
+            padding: 0 1.5rem 1.5rem;
+            max-height: 500px;
+        }
+
+        .faq-item .arrow {
+            transition: transform 0.3s;
+        }
+
+        .faq-item.active .arrow {
+            transform: rotate(180deg);
+        }
+
+        .enterprise-cta {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            padding: 4rem 2rem;
+            text-align: center;
+            border-radius: 1rem;
+            margin: 4rem 0;
+        }
+
+        .enterprise-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+            text-align: left;
+        }
+
+        .enterprise-feature {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation (same as index.html) -->
+    <nav id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <span>🔮</span> RetentionAI
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html#features">Features</a></li>
+                <li><a href="pricing.html" class="active">Pricing</a></li>
+                <li><a href="demo.html">Demo</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="login.html" class="btn btn-secondary">Login</a></li>
+                <li><a href="signup.html" class="btn btn-primary">Start Free Trial</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Pricing Hero -->
+    <section class="pricing-hero">
+        <h1>Simple, Transparent Pricing</h1>
+        <p style="font-size: 1.25rem; opacity: 0.9;">Start with a 14-day free trial. No credit card required.</p>
+        
+        <div class="pricing-toggle">
+            <div class="toggle-option active" onclick="togglePricing('monthly')">Monthly</div>
+            <div class="toggle-option" onclick="togglePricing('annual')">Annual (Save 20%)</div>
+        </div>
+    </section>
+
+    <!-- Pricing Cards -->
+    <div class="pricing-container">
+        <div class="pricing-cards">
+            <!-- Starter Plan -->
+            <div class="pricing-card">
+                <h3 style="font-size: 1.75rem; margin-bottom: 0.5rem;">Starter</h3>
+                <p style="color: var(--gray); margin-bottom: 1rem;">Perfect for small teams</p>
+                <div class="price-display">
+                    <span class="currency">$</span>
+                    <span class="price-value" data-monthly="499" data-annual="399">499</span>
+                    <span class="period">/month</span>
+                </div>
+                <p style="color: var(--gray); margin-bottom: 2rem;">Up to 100 employees</p>
+                
+                <ul class="feature-list">
+                    <li><span class="check">✓</span> AI-powered risk predictions</li>
+                    <li><span class="check">✓</span> Monthly retention reports</li>
+                    <li><span class="check">✓</span> Basic dashboard</li>
+                    <li><span class="check">✓</span> Email alerts</li>
+                    <li><span class="check">✓</span> 3 HRIS integrations</li>
+                    <li><span class="check">✓</span> Email support</li>
+                    <li><span class="cross">×</span> API access</li>
+                    <li><span class="cross">×</span> Custom models</li>
+                </ul>
+                
+                <a href="signup.html?plan=starter" class="btn btn-secondary" style="width: 100%; padding: 1rem;">Start Free Trial</a>
+            </div>
+
+            <!-- Professional Plan -->
+            <div class="pricing-card recommended">
+                <span class="recommended-badge">RECOMMENDED</span>
+                <h3 style="font-size: 1.75rem; margin-bottom: 0.5rem;">Professional</h3>
+                <p style="color: var(--gray); margin-bottom: 1rem;">For growing companies</p>
+                <div class="price-display">
+                    <span class="currency">$</span>
+                    <span class="price-value" data-monthly="999" data-annual="799">999</span>
+                    <span class="period">/month</span>
+                    <span class="annual-savings" style="display: none;">Save $2,400/year</span>
+                </div>
+                <p style="color: var(--gray); margin-bottom: 2rem;">Up to 500 employees</p>
+                
+                <ul class="feature-list">
+                    <li><span class="check">✓</span> Everything in Starter</li>
+                    <li><span class="check">✓</span> Advanced AI predictions</li>
+                    <li><span class="check">✓</span> Real-time monitoring</li>
+                    <li><span class="check">✓</span> Custom dashboards</li>
+                    <li><span class="check">✓</span> Unlimited integrations</li>
+                    <li><span class="check">✓</span> API access</li>
+                    <li><span class="check">✓</span> Priority support</li>
+                    <li><span class="check">✓</span> Slack & Teams alerts</li>
+                </ul>
+                
+                <a href="signup.html?plan=professional" class="btn btn-primary" style="width: 100%; padding: 1rem;">Start Free Trial</a>
+            </div>
+
+            <!-- Enterprise Plan -->
+            <div class="pricing-card">
+                <h3 style="font-size: 1.75rem; margin-bottom: 0.5rem;">Enterprise</h3>
+                <p style="color: var(--gray); margin-bottom: 1rem;">For large organizations</p>
+                <div class="price-display">
+                    <span style="font-size: 2rem;">Custom Pricing</span>
+                </div>
+                <p style="color: var(--gray); margin-bottom: 2rem;">Unlimited employees</p>
+                
+                <ul class="feature-list">
+                    <li><span class="check">✓</span> Everything in Professional</li>
+                    <li><span class="check">✓</span> Custom AI models</li>
+                    <li><span class="check">✓</span> Dedicated success manager</li>
+                    <li><span class="check">✓</span> 24/7 phone support</li>
+                    <li><span class="check">✓</span> On-premise deployment</li>
+                    <li><span class="check">✓</span> SLA guarantee</li>
+                    <li><span class="check">✓</span> Custom integrations</li>
+                    <li><span class="check">✓</span> Advanced security</li>
+                </ul>
+                
+                <a href="contact.html" class="btn btn-secondary" style="width: 100%; padding: 1rem;">Contact Sales</a>
+            </div>
+        </div>
+
+        <!-- Feature Comparison Table -->
+        <div class="comparison-table">
+            <h2 style="padding: 2rem 2rem 0; font-size: 2rem;">Detailed Feature Comparison</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Starter</th>
+                        <th>Professional</th>
+                        <th>Enterprise</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Employee Limit</strong></td>
+                        <td>Up to 100</td>
+                        <td>Up to 500</td>
+                        <td>Unlimited</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Prediction Accuracy</strong></td>
+                        <td>85%</td>
+                        <td>92%</td>
+                        <td>95%+</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Update Frequency</strong></td>
+                        <td>Monthly</td>
+                        <td>Weekly</td>
+                        <td>Real-time</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Historical Data</strong></td>
+                        <td>6 months</td>
+                        <td>2 years</td>
+                        <td>Unlimited</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Custom Reports</strong></td>
+                        <td>5 templates</td>
+                        <td>Unlimited</td>
+                        <td>Unlimited + Custom</td>
+                    </tr>
+                    <tr>
+                        <td><strong>API Calls</strong></td>
+                        <td>-</td>
+                        <td>10,000/month</td>
+                        <td>Unlimited</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Data Export</strong></td>
+                        <td>CSV</td>
+                        <td>CSV, Excel, API</td>
+                        <td>All formats + DB sync</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Training</strong></td>
+                        <td>Video tutorials</td>
+                        <td>Live webinars</td>
+                        <td>On-site training</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Support</strong></td>
+                        <td>Email (48h)</td>
+                        <td>Priority (4h)</td>
+                        <td>24/7 Dedicated</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Enterprise CTA -->
+        <div class="enterprise-cta">
+            <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">Need a Custom Solution?</h2>
+            <p style="font-size: 1.25rem; opacity: 0.9; margin-bottom: 2rem;">Our Enterprise plan is tailored to your organization's unique needs</p>
+            
+            <div class="enterprise-features">
+                <div class="enterprise-feature">
+                    <span>✓</span> White-label options
+                </div>
+                <div class="enterprise-feature">
+                    <span>✓</span> Custom AI training
+                </div>
+                <div class="enterprise-feature">
+                    <span>✓</span> Dedicated infrastructure
+                </div>
+                <div class="enterprise-feature">
+                    <span>✓</span> Compliance support
+                </div>
+                <div class="enterprise-feature">
+                    <span>✓</span> Multi-region deployment
+                </div>
+                <div class="enterprise-feature">
+                    <span>✓</span> Executive dashboards
+                </div>
+            </div>
+            
+            <a href="contact.html" class="btn btn-primary" style="background: white; color: var(--dark); padding: 1rem 3rem; margin-top: 2rem;">Schedule a Demo</a>
+        </div>
+
+        <!-- FAQ Section -->
+        <div class="faq-section">
+            <h2 style="text-align: center; font-size: 2.5rem; margin-bottom: 3rem;">Frequently Asked Questions</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    Can I change plans at any time?
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="faq-answer">
+                    <p>Yes! You can upgrade or downgrade your plan at any time. When upgrading, you'll be prorated for the remainder of your billing cycle. When downgrading, the change will take effect at your next renewal date.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    What happens after my free trial?
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="faq-answer">
+                    <p>Your 14-day free trial includes full access to all Professional features. At the end of your trial, you'll be prompted to choose a plan. If you don't select a plan, your account will be paused but your data will be saved for 30 days.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    Do you offer discounts for non-profits?
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="faq-answer">
+                    <p>Yes! We offer a 30% discount for registered non-profit organizations. Contact our sales team with your 501(c)(3) documentation to apply for the discount.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    How secure is my data?
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="faq-answer">
+                    <p>We use bank-level 256-bit encryption for all data in transit and at rest. We're SOC 2 Type II certified, GDPR compliant, and undergo regular third-party security audits. Your data is stored in secure AWS data centers with 99.9% uptime SLA.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">
+                    Can I export my data?
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="faq-answer">
+                    <p>Absolutely! You own your data and can export it at any time. Starter plans can export to CSV, while Professional and Enterprise plans support CSV, Excel, and API access for real-time data synchronization.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer (same as index.html) -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Product</h4>
+                <ul>
+                    <li><a href="index.html#features">Features</a></li>
+                    <li><a href="pricing.html">Pricing</a></li>
+                    <li><a href="demo.html">Demo</a></li>
+                    <li><a href="api/docs.html">API</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="blog/index.html">Blog</a></li>
+                    <li><a href="careers.html">Careers</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Resources</h4>
+                <ul>
+                    <li><a href="resources/guides/getting-started.html">Getting Started</a></li>
+                    <li><a href="resources/case-studies.html">Case Studies</a></li>
+                    <li><a href="resources/roi-calculator.html">ROI Calculator</a></li>
+                    <li><a href="help.html">Help Center</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="legal/privacy.html">Privacy</a></li>
+                    <li><a href="legal/terms.html">Terms</a></li>
+                    <li><a href="legal/security.html">Security</a></li>
+                    <li><a href="legal/dpa.html">DPA</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 RetentionAI. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        function togglePricing(type) {
+            const toggleOptions = document.querySelectorAll('.toggle-option');
+            const priceValues = document.querySelectorAll('.price-value');
+            const annualSavings = document.querySelectorAll('.annual-savings');
+            
+            toggleOptions.forEach(opt => {
+                opt.classList.remove('active');
+                if ((type === 'monthly' && opt.textContent.includes('Monthly')) ||
+                    (type === 'annual' && opt.textContent.includes('Annual'))) {
+                    opt.classList.add('active');
+                }
+            });
+            
+            priceValues.forEach(price => {
+                const monthlyPrice = price.dataset.monthly;
+                const annualPrice = price.dataset.annual;
+                
+                if (type === 'annual') {
+                    price.textContent = annualPrice;
+                    annualSavings.forEach(badge => badge.style.display = 'inline-block');
+                } else {
+                    price.textContent = monthlyPrice;
+                    annualSavings.forEach(badge => badge.style.display = 'none');
+                }
+            });
+        }
+
+        function toggleFAQ(element) {
+            const faqItem = element.parentElement;
+            const wasActive = faqItem.classList.contains('active');
+            
+            // Close all FAQ items
+            document.querySelectorAll('.faq-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Open clicked item if it wasn't active
+            if (!wasActive) {
+                faqItem.classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>

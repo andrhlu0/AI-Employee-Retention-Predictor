@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Start Your Free Trial - RetentionAI</title>
+    <meta name="description" content="Start your 14-day free trial of RetentionAI. No credit card required. Set up in 5 minutes.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #22d3ee;
+            --dark: #0f172a;
+            --gray: #64748b;
+            --light-gray: #f1f5f9;
+            --white: #ffffff;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .signup-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            max-width: 1200px;
+            width: 100%;
+            background: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .signup-left {
+            padding: 3rem;
+            background: white;
+        }
+
+        .signup-right {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            padding: 3rem;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .signup-header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+
+        .signup-header p {
+            color: var(--gray);
+            margin-bottom: 2rem;
+        }
+
+        .plan-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .plan-option {
+            padding: 1rem;
+            border: 2px solid var(--light-gray);
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .plan-option:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .plan-option.selected {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .plan-option .plan-name {
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .plan-option .plan-price {
+            color: var(--gray);
+            font-size: 0.875rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--light-gray);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .password-strength {
+            display: flex;
+            gap: 0.25rem;
+            margin-top: 0.5rem;
+        }
+
+        .strength-bar {
+            height: 4px;
+            flex: 1;
+            background: var(--light-gray);
+            border-radius: 2px;
+            transition: background 0.3s;
+        }
+
+        .strength-bar.active {
+            background: var(--success);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-top: 2px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            color: var(--gray);
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .checkbox-group a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .checkbox-group a:hover {
+            text-decoration: underline;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-submit:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .divider {
+            text-align: center;
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--light-gray);
+        }
+
+        .divider span {
+            background: white;
+            padding: 0 1rem;
+            position: relative;
+            color: var(--gray);
+        }
+
+        .social-signup {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .social-btn {
+            padding: 0.75rem;
+            border: 2px solid var(--light-gray);
+            border-radius: 0.5rem;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .social-btn:hover {
+            border-color: var(--primary);
+            background: var(--light-gray);
+        }
+
+        .signup-footer {
+            text-align: center;
+            color: var(--gray);
+        }
+
+        .signup-footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* Right side styles */
+        .testimonial {
+            margin-bottom: 3rem;
+        }
+
+        .testimonial-text {
+            font-size: 1.25rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .author-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .author-info .name {
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .author-info .role {
+            opacity: 0.8;
+            font-size: 0.875rem;
+        }
+
+        .features-list {
+            list-style: none;
+        }
+
+        .features-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: 0.5rem;
+        }
+
+        .features-list .icon {
+            width: 30px;
+            height: 30px;
+            background: var(--success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .trust-badges {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .trust-badge {
+            flex: 1;
+            text-align: center;
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            .signup-container {
+                grid-template-columns: 1fr;
+            }
+
+            .signup-right {
+                display: none;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .plan-selector {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .error-message {
+            color: var(--danger);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        .success-message {
+            background: var(--success);
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="signup-container">
+        <!-- Left Side - Signup Form -->
+        <div class="signup-left">
+            <div class="logo">
+                <span>🔮</span> RetentionAI
+            </div>
+
+            <div class="signup-header">
+                <h1>Start Your Free Trial</h1>
+                <p>14 days free • No credit card required • Cancel anytime</p>
+            </div>
+
+            <div class="success-message" id="successMessage">
+                Account created successfully! Redirecting to dashboard...
+            </div>
+
+            <!-- Plan Selection -->
+            <div class="plan-selector">
+                <div class="plan-option" onclick="selectPlan('starter')">
+                    <div class="plan-name">Starter</div>
+                    <div class="plan-price">$499/mo</div>
+                </div>
+                <div class="plan-option selected" onclick="selectPlan('professional')">
+                    <div class="plan-name">Professional</div>
+                    <div class="plan-price">$999/mo</div>
+                </div>
+                <div class="plan-option" onclick="selectPlan('enterprise')">
+                    <div class="plan-name">Enterprise</div>
+                    <div class="plan-price">Custom</div>
+                </div>
+            </div>
+
+            <!-- Signup Form -->
+            <form id="signupForm" onsubmit="handleSignup(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName">First Name</label>
+                        <input type="text" id="firstName" name="firstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name</label>
+                        <input type="text" id="lastName" name="lastName" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Work Email</label>
+                    <input type="email" id="email" name="email" required>
+                    <span class="error-message" id="emailError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="company">Company Name</label>
+                    <input type="text" id="company" name="company" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="employees">Company Size</label>
+                        <select id="employees" name="employees" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--light-gray); border-radius: 0.5rem; font-size: 1rem;">
+                            <option value="1-50">1-50 employees</option>
+                            <option value="51-100">51-100 employees</option>
+                            <option value="101-500">101-500 employees</option>
+                            <option value="501-1000">501-1000 employees</option>
+                            <option value="1000+">1000+ employees</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" name="phone">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required onkeyup="checkPasswordStrength()">
+                    <div class="password-strength" id="passwordStrength">
+                        <div class="strength-bar"></div>
+                        <div class="strength-bar"></div>
+                        <div class="strength-bar"></div>
+                        <div class="strength-bar"></div>
+                    </div>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="terms" name="terms" required>
+                    <label for="terms">
+                        I agree to the <a href="legal/terms.html" target="_blank">Terms of Service</a> and 
+                        <a href="legal/privacy.html" target="_blank">Privacy Policy</a>
+                    </label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="newsletter" name="newsletter">
+                    <label for="newsletter">
+                        Send me tips on reducing employee turnover (you can unsubscribe anytime)
+                    </label>
+                </div>
+
+                <button type="submit" class="btn-submit">Start My Free Trial</button>
+            </form>
+
+            <div class="divider">
+                <span>or sign up with</span>
+            </div>
+
+            <div class="social-signup">
+                <button class="social-btn" onclick="socialSignup('google')">
+                    <span>🔍</span> Google
+                </button>
+                <button class="social-btn" onclick="socialSignup('microsoft')">
+                    <span>🪟</span> Microsoft
+                </button>
+            </div>
+
+            <div class="signup-footer">
+                Already have an account? <a href="login.html">Sign in</a>
+            </div>
+        </div>
+
+        <!-- Right Side - Benefits -->
+        <div class="signup-right">
+            <h2 style="font-size: 2rem; margin-bottom: 2rem;">Join 500+ HR Leaders</h2>
+
+            <div class="testimonial">
+                <p class="testimonial-text">
+                    "RetentionAI helped us reduce turnover by 38% in just 6 months. The ROI was immediate - we saved over $2 million in recruitment costs."
+                </p>
+                <div class="testimonial-author">
+                    <div class="author-avatar">JD</div>
+                    <div class="author-info">
+                        <div class="name">Jennifer Davis</div>
+                        <div class="role">VP of People, TechCorp</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="margin-bottom: 1.5rem;">What you'll get:</h3>
+            <ul class="features-list">
+                <li>
+                    <div class="icon">✓</div>
+                    <span>AI predictions with 92% accuracy</span>
+                </li>
+                <li>
+                    <div class="icon">✓</div>
+                    <span>Identify at-risk employees 3 months early</span>
+                </li>
+                <li>
+                    <div class="icon">✓</div>
+                    <span>Personalized retention strategies</span>
+                </li>
+                <li>
+                    <div class="icon">✓</div>
+                    <span>Integration with your HRIS in minutes</span>
+                </li>
+                <li>
+                    <div class="icon">✓</div>
+                    <span>Real-time dashboards and alerts</span>
+                </li>
+            </ul>
+
+            <div class="trust-badges">
+                <div class="trust-badge">
+                    🔒 SOC 2<br>Certified
+                </div>
+                <div class="trust-badge">
+                    🇪🇺 GDPR<br>Compliant
+                </div>
+                <div class="trust-badge">
+                    ⭐ 4.9/5<br>Rating
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedPlan = 'professional';
+
+        function selectPlan(plan) {
+            selectedPlan = plan;
+            document.querySelectorAll('.plan-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+        }
+
+        function checkPasswordStrength() {
+            const password = document.getElementById('password').value;
+            const strengthBars = document.querySelectorAll('.strength-bar');
+            let strength = 0;
+
+            // Check password strength
+            if (password.length >= 8) strength++;
+            if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
+            if (password.match(/[0-9]/)) strength++;
+            if (password.match(/[^a-zA-Z0-9]/)) strength++;
+
+            // Update visual indicator
+            strengthBars.forEach((bar, index) => {
+                if (index < strength) {
+                    bar.classList.add('active');
+                } else {
+                    bar.classList.remove('active');
+                }
+            });
+        }
+
+        function handleSignup(event) {
+            event.preventDefault();
+            
+            // Get form data
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData);
+            data.plan = selectedPlan;
+
+            // Validate email
+            const email = data.email;
+            if (!email.includes('@') || email.endsWith('@gmail.com') || email.endsWith('@yahoo.com')) {
+                document.getElementById('emailError').textContent = 'Please use your work email address';
+                return;
+            }
+
+            // Here you would normally send data to your backend
+            console.log('Signup data:', data);
+
+            // Show success message
+            document.getElementById('successMessage').style.display = 'block';
+            
+            // Redirect to app after 2 seconds
+            setTimeout(() => {
+                window.location.href = '../frontend/index.html'; // Adjust path as needed
+            }, 2000);
+        }
+
+        function socialSignup(provider) {
+            console.log(`Signing up with ${provider}`);
+            // Implement OAuth flow here
+        }
+
+        // Check for plan parameter in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const planParam = urlParams.get('plan');
+        if (planParam) {
+            selectPlan(planParam);
+        }
+    </script>
+</body>
+</html>

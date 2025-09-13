@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - RetentionAI</title>
+    <meta name="description" content="Login to your RetentionAI account to access your employee retention dashboard.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #22d3ee;
+            --dark: #0f172a;
+            --gray: #64748b;
+            --light-gray: #f1f5f9;
+            --white: #ffffff;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .login-container {
+            max-width: 450px;
+            width: 100%;
+            background: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 3rem;
+        }
+
+        .logo {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+
+        .login-header p {
+            color: var(--gray);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--light-gray);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            color: var(--gray);
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        .forgot-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .forgot-link:hover {
+            text-decoration: underline;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-submit:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .divider {
+            text-align: center;
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--light-gray);
+        }
+
+        .divider span {
+            background: white;
+            padding: 0 1rem;
+            position: relative;
+            color: var(--gray);
+        }
+
+        .social-login {
+            display: grid;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .social-btn {
+            padding: 0.75rem;
+            border: 2px solid var(--light-gray);
+            border-radius: 0.5rem;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .social-btn:hover {
+            border-color: var(--primary);
+            background: var(--light-gray);
+        }
+
+        .login-footer {
+            text-align: center;
+            color: var(--gray);
+        }
+
+        .login-footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: none;
+            font-size: 0.875rem;
+        }
+
+        .success-message {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: none;
+            font-size: 0.875rem;
+        }
+
+        .demo-banner {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .demo-banner h3 {
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.9;
+        }
+
+        .demo-credentials {
+            background: rgba(255,255,255,0.2);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .demo-credentials code {
+            display: block;
+            font-family: 'Courier New', monospace;
+            margin: 0.25rem 0;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 2rem;
+            }
+
+            .login-header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <span>🔮</span> RetentionAI
+        </div>
+
+        <div class="login-header">
+            <h1>Welcome Back</h1>
+            <p>Sign in to access your dashboard</p>
+        </div>
+
+        <!-- Demo Banner -->
+        <div class="demo-banner">
+            <h3>🎯 Try our demo account</h3>
+            <div class="demo-credentials">
+                <code>Email: admin@demo.com</code>
+                <code>Password: demo123</code>
+            </div>
+        </div>
+
+        <div class="error-message" id="errorMessage">
+            Invalid email or password. Please try again.
+        </div>
+
+        <div class="success-message" id="successMessage">
+            Login successful! Redirecting to dashboard...
+        </div>
+
+        <!-- Login Form -->
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" required placeholder="you@company.com">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required placeholder="Enter your password">
+            </div>
+
+            <div class="form-options">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="remember" name="remember">
+                    <label for="remember">Remember me</label>
+                </div>
+                <a href="forgot-password.html" class="forgot-link">Forgot password?</a>
+            </div>
+
+            <button type="submit" class="btn-submit">Sign In</button>
+        </form>
+
+        <div class="divider">
+            <span>or sign in with</span>
+        </div>
+
+        <div class="social-login">
+            <button class="social-btn" onclick="socialLogin('google')">
+                <span>🔍</span> Continue with Google
+            </button>
+            <button class="social-btn" onclick="socialLogin('microsoft')">
+                <span>🪟</span> Continue with Microsoft
+            </button>
+            <button class="social-btn" onclick="socialLogin('sso')">
+                <span>🔐</span> Continue with SSO
+            </button>
+        </div>
+
+        <div class="login-footer">
+            Don't have an account? <a href="signup.html">Start your free trial</a>
+        </div>
+    </div>
+
+    <script>
+        function handleLogin(event) {
+            event.preventDefault();
+            
+            // Get form data
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData);
+
+            // Hide any existing messages
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+
+            // Demo login check
+            if (data.email === 'admin@demo.com' && data.password === 'demo123') {
+                // Show success message
+                document.getElementById('successMessage').style.display = 'block';
+                
+                // Store auth token (in production, this would come from backend)
+                localStorage.setItem('token', 'demo-token-123');
+                localStorage.setItem('user', JSON.stringify({
+                    email: data.email,
+                    name: 'Demo Admin',
+                    role: 'admin'
+                }));
+
+                // Redirect to dashboard after 1 second
+                setTimeout(() => {
+                    window.location.href = '../frontend/index.html'; // Adjust path as needed
+                }, 1000);
+            } else {
+                // In production, you would make an API call here
+                console.log('Login attempt:', data);
+                
+                // For demo, show error if not using demo credentials
+                document.getElementById('errorMessage').style.display = 'block';
+            }
+        }
+
+        function socialLogin(provider) {
+            console.log(`Logging in with ${provider}`);
+            // Implement OAuth flow here
+            if (provider === 'sso') {
+                // Redirect to SSO provider
+                alert('SSO integration would redirect to your identity provider');
+            }
+        }
+
+        // Auto-fill demo credentials when clicking on them
+        document.querySelector('.demo-credentials').addEventListener('click', () => {
+            document.getElementById('email').value = 'admin@demo.com';
+            document.getElementById('password').value = 'demo123';
+        });
+
+        // Check if user is already logged in
+        if (localStorage.getItem('token')) {
+            // Redirect to dashboard if already logged in
+            window.location.href = '../frontend/index.html';
+        }
+    </script>
+</body>
+</html>
